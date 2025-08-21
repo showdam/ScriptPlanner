@@ -407,7 +407,7 @@ S2. EXT. 거리 - NIGHT
                 <div class="quick-review-mode" id="quickReviewMode" style="display: none;">
                     <div class="quick-review-header">
                         <h3>🚀 빠른 검토 모드</h3>
-                        <p class="quick-review-subtitle">3단계로 빠르게 검토하고 바로 촬영계획표를 생성하세요</p>
+                        <p class="quick-review-subtitle">4단계로 빠르게 검토하고 바로 촬영계획표를 생성하세요</p>
                         
                         <!-- 전체 진행률 바 -->
                         <div class="overall-progress-in-review">
@@ -438,11 +438,15 @@ S2. EXT. 거리 - NIGHT
                             </div>
                             <div class="progress-step" data-step="2">
                                 <span class="step-number">2</span>
-                                <span class="step-title">오류 수정</span>
+                                <span class="step-title">분석 결과</span>
                             </div>
                             <div class="progress-step" data-step="3">
                                 <span class="step-number">3</span>
                                 <span class="step-title">촬영 순서</span>
+                            </div>
+                            <div class="progress-step" data-step="4">
+                                <span class="step-number">4</span>
+                                <span class="step-title">미리보기</span>
                             </div>
                         </div>
                     </div>
@@ -522,7 +526,67 @@ S2. EXT. 거리 - NIGHT
                             
                             <div class="step-actions">
                                 <button id="step3PrevBtn" class="btn-step-prev">← 이전</button>
-                                <button id="generateFinalBtn" class="btn-generate-final">🎬 촬영계획표 생성하기</button>
+                                <button id="step3NextBtn" class="btn-step-next">다음: 미리보기 →</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4단계: 미리보기 -->
+                    <div class="quick-step" id="quickStep4" style="display: none;">
+                        <div class="step-content">
+                            <h4>📊 생성된 촬영계획표 미리보기</h4>
+                            <!-- 안내 메시지 -->
+                            <div class="preview-guide">
+                                <div class="guide-message">
+                                    ✨ 생성된 촬영계획표 미리보기입니다. 전체 내용은 엑셀 파일 다운로드 후 확인하실 수 있습니다.
+                                </div>
+                            </div>
+                            
+                            <!-- 탭 네비게이션 -->
+                            <div class="preview-tabs">
+                                <button class="preview-tab active" data-tab="shooting-plan">촬영계획표</button>
+                                <button class="preview-tab" data-tab="scene-list">씬리스트</button>
+                                <button class="preview-tab" data-tab="analysis-info">분석 정보</button>
+                            </div>
+                            
+                            <!-- 미리보기 컨텐츠 -->
+                            <div class="preview-content">
+                                <!-- 촬영계획표 탭 -->
+                                <div class="preview-tab-content active" id="shootingplanPreview">
+                                    <div class="preview-info">
+                                        <span class="preview-count">전체 <span id="totalShooting">0</span>개 중 <span id="previewShooting">15</span>개 미리보기 중</span>
+                                    </div>
+                                    <div class="preview-table-container">
+                                        <table class="preview-table" id="shootingPlanTable">
+                                            <!-- 동적으로 생성됨 -->
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- 씬리스트 탭 -->
+                                <div class="preview-tab-content" id="scenelistPreview">
+                                    <div class="preview-info">
+                                        <span class="preview-count">전체 <span id="totalScenes">0</span>개 중 <span id="previewScenes">20</span>개 미리보기 중</span>
+                                    </div>
+                                    <div class="preview-table-container">
+                                        <table class="preview-table" id="sceneListTable">
+                                            <!-- 동적으로 생성됨 -->
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- 분석 정보 탭 -->
+                                <div class="preview-tab-content" id="analysisinfoPreview">
+                                    <div class="analysis-info-cards" id="analysisInfoCards">
+                                        <!-- 동적으로 생성됨 -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="step-actions">
+                                <button id="step4PrevBtn" class="btn-step-prev">← 이전</button>
+                                <button id="generateFinalBtn" class="btn-generate-final">📥 엑셀 다운로드</button>
+                                <span class="download-info">* 4개 시트가 포함된 완전한 엑셀 파일</span>
                             </div>
                         </div>
                     </div>

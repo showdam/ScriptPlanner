@@ -66,8 +66,18 @@ document.addEventListener('DOMContentLoaded', function() {
             goToQuickStep(3);
         } else if (e.target.id === 'step3PrevBtn') {
             goToQuickStep(2);
+        } else if (e.target.id === 'step3NextBtn') {
+            goToQuickStep(4);
+        } else if (e.target.id === 'step4PrevBtn') {
+            goToQuickStep(3);
         } else if (e.target.id === 'generateFinalBtn') {
-            generateFinalSchedule();
+            if (currentQuickStep === 4) {
+                downloadExcel();
+            } else {
+                generateFinalSchedule();
+            }
+        } else if (e.target.classList.contains('preview-tab')) {
+            switchPreviewTab(e.target.dataset.tab);
         } else if (e.target.classList.contains('character-option')) {
             toggleCharacterSelection(e.target);
         }
@@ -773,6 +783,11 @@ function goToQuickStep(step) {
         renderShootingOrderStep(analysisResult.scenes);
     }
     
+    // 4단계 진입시 미리보기 렌더링
+    if (step === 4 && analysisResult) {
+        renderPreviewStep();
+    }
+    
     // 진행 상황 업데이트
     updateProgressIndicator();
     updateQuickReviewProgress(step);
@@ -809,7 +824,7 @@ function updateQuickReviewProgress(step) {
     const stepProgressText = document.getElementById('stepProgressText');
     
     // 전체 진행률 (50% + 단계별 추가)
-    const overallProgress = 50 + (step * 15);
+    const overallProgress = step === 4 ? 100 : 50 + (step * 12.5);
     if (reviewProgressFill) {
         reviewProgressFill.style.width = `${overallProgress}%`;
     }
@@ -818,12 +833,12 @@ function updateQuickReviewProgress(step) {
     }
     
     // 검토 단계 진행률
-    const stepProgress = (step / 3) * 100;
+    const stepProgress = (step / 4) * 100;
     if (stepProgressFill) {
         stepProgressFill.style.width = `${stepProgress}%`;
     }
     if (stepProgressText) {
-        stepProgressText.textContent = `${step}/3 단계`;
+        stepProgressText.textContent = `${step}/4 단계`;
     }
 }
 
@@ -1725,4 +1740,233 @@ function updateStep2TextByAnalysisMode() {
         step2Title.textContent = '2단계: 분석 결과를 확인해주세요';
         step2Guide.textContent = '분석된 대본 정보와 통계를 확인하세요. 내용이 정확한지 검토해주세요.';
     }
+}
+
+// ==================== 4단계: 미리보기 기능 ====================
+
+// 4단계 미리보기 렌더링
+function renderPreviewStep() {
+    // 기본적으로 촬영계획표 탭이 선택되어 있으므로 바로 렌더링
+    renderShootingPlanPreview();
+}
+
+// 탭 전환 함수
+function switchPreviewTab(tabName) {
+    // 모든 탭 비활성화
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.preview-tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // 선택된 탭 활성화
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    document.getElementById(`${tabName.replace(/-/g, '')}Preview`).classList.add('active');
+    
+    // 탭별 컨텐츠 렌더링
+    switch(tabName) {
+        case 'shooting-plan':
+            renderShootingPlanPreview();
+            break;
+        case 'scene-list':
+            renderSceneListPreview();
+            break;
+        case 'analysis-info':
+            renderAnalysisInfoPreview();
+            break;
+    }
+}
+
+// 촬영계획표 미리보기 렌더링
+function renderShootingPlanPreview() {
+    const table = document.getElementById('shootingPlanTable');
+    const totalShootingEl = document.getElementById('totalShooting');
+    const previewShootingEl = document.getElementById('previewShooting');
+    
+    if (!analysisResult || !analysisResult.scenes) {
+        table.innerHTML = '<tr><td colspan="12">데이터가 없습니다.</td></tr>';
+        return;
+    }
+    
+    // 모크 데이터 생성 (실제로는 서버에서 받아온 엑셀 데이터 사용)
+    const shootingPlanData = generateShootingPlanData();
+    const previewCount = Math.min(15, shootingPlanData.length);
+    
+    totalShootingEl.textContent = shootingPlanData.length;
+    previewShootingEl.textContent = previewCount;
+    
+    // 테이블 헤더
+    const headers = ['Ep', 'S#', 'D/N', 'L/S', '시제', '장소', '내용', '주요인물1', '주요인물2', '주요인물3', '보조출연자', '미술&소품', '특촬/비고'];
+    
+    let tableHTML = '<thead><tr>';
+    headers.forEach(header => {
+        tableHTML += `<th>${header}</th>`;
+    });
+    tableHTML += '</tr></thead><tbody>';
+    
+    // 미리보기 데이터 (최대 15개)
+    for (let i = 0; i < previewCount; i++) {
+        const row = shootingPlanData[i];
+        if (row.isLocationSeparator) {
+            tableHTML += `<tr class="location-separator"><td colspan="13">${row.content}</td></tr>`;
+        } else {
+            tableHTML += '<tr>';
+            tableHTML += `<td>1</td>`;
+            tableHTML += `<td>${row.sceneNumber}</td>`;
+            tableHTML += `<td>${row.timeOfDay}</td>`;
+            tableHTML += `<td>-</td>`;
+            tableHTML += `<td>-</td>`;
+            tableHTML += `<td>${row.location}</td>`;
+            tableHTML += `<td>${row.content.substring(0, 50)}${row.content.length > 50 ? '...' : ''}</td>`;
+            
+            // 주요 인물 3명
+            const mainChars = selectedMainCharacters.slice(0, 3);
+            for (let j = 0; j < 3; j++) {
+                if (j < mainChars.length && row.characters.includes(mainChars[j])) {
+                    tableHTML += `<td class="main-character">${mainChars[j]}</td>`;
+                } else {
+                    tableHTML += `<td>-</td>`;
+                }
+            }
+            
+            tableHTML += `<td>-</td>`;
+            tableHTML += `<td>-</td>`;
+            tableHTML += `<td>-</td>`;
+            tableHTML += '</tr>';
+        }
+    }
+    
+    tableHTML += '</tbody>';
+    table.innerHTML = tableHTML;
+}
+
+// 씬리스트 미리보기 렌더링
+function renderSceneListPreview() {
+    const table = document.getElementById('sceneListTable');
+    const totalScenesEl = document.getElementById('totalScenes');
+    const previewScenesEl = document.getElementById('previewScenes');
+    
+    if (!analysisResult || !analysisResult.scenes) {
+        table.innerHTML = '<tr><td colspan="6">데이터가 없습니다.</td></tr>';
+        return;
+    }
+    
+    const scenes = analysisResult.scenes;
+    const previewCount = Math.min(20, scenes.length);
+    
+    totalScenesEl.textContent = scenes.length;
+    previewScenesEl.textContent = previewCount;
+    
+    // 테이블 헤더
+    const headers = ['씬번호', '장소', '시간대', '내용요약', '등장인물', '소품'];
+    
+    let tableHTML = '<thead><tr>';
+    headers.forEach(header => {
+        tableHTML += `<th>${header}</th>`;
+    });
+    tableHTML += '</tr></thead><tbody>';
+    
+    // 미리보기 데이터
+    for (let i = 0; i < previewCount; i++) {
+        const scene = scenes[i];
+        const isLowConfidence = Math.random() < 0.1; // 10% 확률로 신뢰도 낮음 표시
+        
+        tableHTML += `<tr${isLowConfidence ? ' class="low-confidence"' : ''}>`;
+        tableHTML += `<td>${scene.number}</td>`;
+        tableHTML += `<td>${scene.location}</td>`;
+        tableHTML += `<td>${scene.timeOfDay === 'DAY' ? '낮' : '밤'}</td>`;
+        tableHTML += `<td>${scene.content.substring(0, 80)}${scene.content.length > 80 ? '...' : ''}</td>`;
+        tableHTML += `<td>${scene.characters ? scene.characters.slice(0, 3).join(', ') : '-'}</td>`;
+        tableHTML += `<td>-</td>`;
+        tableHTML += '</tr>';
+    }
+    
+    tableHTML += '</tbody>';
+    table.innerHTML = tableHTML;
+}
+
+// 분석 정보 미리보기 렌더링
+function renderAnalysisInfoPreview() {
+    const container = document.getElementById('analysisInfoCards');
+    
+    if (!analysisResult) {
+        container.innerHTML = '<p>데이터가 없습니다.</p>';
+        return;
+    }
+    
+    // 분석 정보 계산
+    const totalScenes = analysisResult.scenes ? analysisResult.scenes.length : 0;
+    const totalCharacters = analysisResult.characters ? analysisResult.characters.length : 0;
+    
+    // 장소별 그룹핑
+    const locations = [...new Set(analysisResult.scenes.map(scene => scene.location))];
+    const mainLocations = locations.slice(0, 3);
+    
+    // 예상 촬영일수 (장소 수 기준)
+    const estimatedDays = Math.ceil(locations.length / 2);
+    
+    // 장소 이동 횟수
+    const locationChanges = analysisResult.scenes.reduce((count, scene, index) => {
+        if (index > 0 && scene.location !== analysisResult.scenes[index - 1].location) {
+            return count + 1;
+        }
+        return count;
+    }, 0);
+    
+    // 주/야간 비율
+    const dayScenes = analysisResult.scenes.filter(scene => scene.timeOfDay === 'DAY').length;
+    const nightScenes = totalScenes - dayScenes;
+    const dayNightRatio = `${Math.round((dayScenes / totalScenes) * 100)}% : ${Math.round((nightScenes / totalScenes) * 100)}%`;
+    
+    const analysisData = [
+        { title: '총 씬 수', value: totalScenes, unit: '개', highlight: true },
+        { title: '총 등장인물', value: totalCharacters, unit: '명', highlight: false },
+        { title: '주요 촬영장소', value: mainLocations.length, unit: '곳', highlight: false },
+        { title: '예상 촬영일수', value: estimatedDays, unit: '일', highlight: true },
+        { title: '장소 이동횟수', value: locationChanges, unit: '회', highlight: false },
+        { title: '주/야간 비율', value: dayNightRatio, unit: '', highlight: false }
+    ];
+    
+    let cardsHTML = '';
+    analysisData.forEach(item => {
+        cardsHTML += `
+            <div class="analysis-info-card ${item.highlight ? 'highlight' : ''}">
+                <h5>${item.title}</h5>
+                <div class="value">${item.value}</div>
+                <div class="unit">${item.unit}</div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = cardsHTML;
+}
+
+// 촬영계획표 데이터 생성 (모크)
+function generateShootingPlanData() {
+    if (!analysisResult || !analysisResult.scenes) return [];
+    
+    const data = [];
+    const groupedScenes = groupScenesByLocation(analysisResult.scenes);
+    
+    groupedScenes.forEach(group => {
+        // 장소 구분자 추가
+        data.push({
+            isLocationSeparator: true,
+            content: `─── ${group.location} (${group.scenes.length}씬) ───`
+        });
+        
+        // 해당 장소의 씬들 추가
+        group.scenes.forEach(scene => {
+            data.push({
+                sceneNumber: scene.number,
+                timeOfDay: scene.timeOfDay,
+                location: scene.location,
+                content: scene.content,
+                characters: scene.characters || []
+            });
+        });
+    });
+    
+    return data;
 }
