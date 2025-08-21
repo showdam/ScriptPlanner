@@ -3179,6 +3179,7 @@ body {
 
 /* 샘플 다운로드 섹션 */
 .sample-download-section {
+    display: none; /* 기본적으로 숨김 */
     padding: 32px 0;
     background: #fafafa;
 }

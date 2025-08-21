@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // 기본적으로 촬영계획표 마법사 페이지 표시
     showPage('planner');
     
+    // 샘플 다운로드 섹션 표시 (페이지 로딩 시)
+    setTimeout(() => {
+        showSampleSection();
+    }, 1000); // 1초 후에 표시
+    
     const scriptInput = document.getElementById('scriptInput');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const downloadBtn = document.getElementById('downloadBtn');
@@ -2381,7 +2386,22 @@ async function downloadSampleExcel() {
     }
 }
 
-// 샘플 섹션 숨기기 함수
+// 샘플 섹션 표시/숨기기 함수
+function showSampleSection() {
+    const sampleSection = document.getElementById('sampleSection');
+    if (sampleSection) {
+        sampleSection.style.display = 'block';
+        
+        // 부드러운 스크롤 애니메이션으로 해당 섹션으로 이동
+        setTimeout(() => {
+            sampleSection.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+        }, 100);
+    }
+}
+
 function hideSampleSection() {
     const sampleSection = document.getElementById('sampleSection');
     if (sampleSection) {
