@@ -2665,3 +2665,86 @@ body {
     color: #6c757d;
     font-weight: 500;
 }
+
+/* 씬 리스트 테이블 스타일 */
+.scene-list-table {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+}
+
+.scene-table-header {
+    display: grid;
+    grid-template-columns: 80px 1fr 120px 2fr;
+    gap: 16px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.scene-table-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 120px 2fr;
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid #f1f3f4;
+    align-items: center;
+    transition: background-color 0.15s ease;
+}
+
+.scene-table-row:hover {
+    background: #f8f9fa;
+}
+
+.scene-table-row:last-child {
+    border-bottom: none;
+}
+
+.scene-col-number {
+    font-weight: 600;
+    color: #495057;
+    text-align: center;
+    background: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.scene-col-location {
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.scene-col-time {
+    text-align: center;
+}
+
+.time-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.time-badge.day {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.time-badge.night {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.scene-col-content {
+    color: #495057;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}

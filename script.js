@@ -1038,6 +1038,39 @@ function renderStep2AnalysisReport() {
     reportHTML += `
                 </div>
             </div>
+            
+            <!-- 씬 리스트 -->
+            <div class="report-section">
+                <h4>🎬 씬 리스트</h4>
+                <div class="scene-list-table">
+                    <div class="scene-table-header">
+                        <div class="scene-col-number">씬</div>
+                        <div class="scene-col-location">장소</div>
+                        <div class="scene-col-time">시간</div>
+                        <div class="scene-col-content">내용</div>
+                    </div>
+    `;
+    
+    analysisResult.scenes.forEach(scene => {
+        const timeIcon = scene.timeOfDay === 'DAY' ? '☀️' : '🌙';
+        const content = scene.content.length > 50 ? 
+            scene.content.substring(0, 50) + '...' : scene.content;
+        
+        reportHTML += `
+            <div class="scene-table-row">
+                <div class="scene-col-number">${scene.number}</div>
+                <div class="scene-col-location">${scene.location}</div>
+                <div class="scene-col-time">
+                    <span class="time-badge ${scene.timeOfDay.toLowerCase()}">${timeIcon} ${scene.timeOfDay}</span>
+                </div>
+                <div class="scene-col-content">${content}</div>
+            </div>
+        `;
+    });
+    
+    reportHTML += `
+                </div>
+            </div>
         </div>
     `;
     
