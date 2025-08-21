@@ -292,10 +292,12 @@ function renderCharacterManagement(data) {
     
     let charactersHTML = '';
     data.characters.forEach(character => {
-        const frequency = data.characterFrequency[character] || 0;
+        // character는 이제 {name, appearances, role} 객체
+        const name = character.name || character;
+        const frequency = character.appearances || data.characterFrequency[name] || 0;
         charactersHTML += `
-            <div class="character-item" data-character="${character}">
-                <input type="text" class="character-name" value="${character}" ${!isEditMode ? 'readonly' : ''}>
+            <div class="character-item" data-character="${name}">
+                <input type="text" class="character-name" value="${name}" ${!isEditMode ? 'readonly' : ''}>
                 <span class="character-frequency">${frequency}회</span>
                 <button class="delete-character" ${!isEditMode ? 'style="display:none"' : ''}>×</button>
             </div>
@@ -848,14 +850,16 @@ function renderStep1MainCharacters() {
     
     let charactersHTML = '';
     analysisResult.characters.forEach(character => {
-        const frequency = analysisResult.characterFrequency[character] || 0;
-        const isSelected = selectedMainCharacters.includes(character);
+        // character는 이제 {name, appearances, role} 객체
+        const name = character.name || character;
+        const frequency = character.appearances || analysisResult.characterFrequency[name] || 0;
+        const isSelected = selectedMainCharacters.includes(name);
         
         charactersHTML += `
-            <div class="character-option ${isSelected ? 'selected' : ''}" data-character="${character}">
+            <div class="character-option ${isSelected ? 'selected' : ''}" data-character="${name}">
                 <div class="character-checkbox"></div>
                 <div class="character-info">
-                    <div class="character-option-name">${character}</div>
+                    <div class="character-option-name">${name}</div>
                     <div class="character-option-frequency">${frequency}회 출현</div>
                 </div>
             </div>
