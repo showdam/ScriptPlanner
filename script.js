@@ -725,8 +725,8 @@ function startQuickReview() {
     currentQuickStep = 1;
     selectedMainCharacters = [];
     
-    // 모의 오류 데이터 생성 (향후 AI 연동 시 실제 데이터로 교체)
-    generateMockErrorScenes();
+    // 분석 리포트 준비
+    // generateAnalysisReport는 실시간으로 호출되므로 별도 준비 불필요
     
     // UI 전환
     const nextStepGuide = document.getElementById('nextStepGuide');
@@ -787,7 +787,7 @@ function goToQuickStep(step) {
             renderStep1MainCharacters();
             break;
         case 2:
-            renderStep2ErrorScenes();
+            renderStep2AnalysisReport();
             break;
         case 3:
             renderStep3ShootingOrder();
@@ -910,37 +910,39 @@ function updateStep1NextButton() {
     }
 }
 
-// 모의 오류 데이터 생성 (향후 AI 연동 대체)
-function generateMockErrorScenes() {
-    mockErrorScenes = [];
+// 분석 결과 리포트 생성
+function generateAnalysisReport() {
+    const report = {
+        summary: {
+            totalScenes: analysisResult.scenes.length,
+            totalLocations: analysisResult.locations.length,
+            totalCharacters: analysisResult.characters.length,
+            dayScenes: analysisResult.scenes.filter(s => s.timeOfDay === 'DAY').length,
+            nightScenes: analysisResult.scenes.filter(s => s.timeOfDay === 'NIGHT').length
+        },
+        locationBreakdown: {},
+        characterBreakdown: analysisResult.characters.slice(0, 5) // 상위 5명만
+    };
     
-    // 실제로는 AI가 감지한 오류를 사용하지만, 임시로 모의 데이터 생성
-    const totalScenes = analysisResult.scenes.length;
-    const errorCount = Math.min(5, Math.ceil(totalScenes * 0.3)); // 최대 5개, 전체의 30%
-    
-    for (let i = 0; i < errorCount; i++) {
-        const sceneIndex = Math.floor(Math.random() * totalScenes);
-        const scene = analysisResult.scenes[sceneIndex];
-        
-        if (scene && !mockErrorScenes.find(e => e.sceneIndex === sceneIndex)) {
-            const errorTypes = [
-                { field: 'location', description: '장소명이 모호하거나 표준화되지 않았습니다.' },
-                { field: 'timeOfDay', description: '시간대 정보가 불명확합니다.' },
-                { field: 'content', description: '씬 내용이 너무 짧거나 불완전합니다.' }
-            ];
-            
-            const randomError = errorTypes[Math.floor(Math.random() * errorTypes.length)];
-            
-            mockErrorScenes.push({
-                sceneIndex: sceneIndex,
-                sceneNumber: scene.number,
-                errorField: randomError.field,
-                errorDescription: randomError.description,
-                currentValue: scene[randomError.field],
-                suggestedValue: getSuggestedValue(randomError.field, scene[randomError.field])
-            });
+    // 장소별 씬 분석
+    analysisResult.scenes.forEach(scene => {
+        const location = scene.location || '미정';
+        if (!report.locationBreakdown[location]) {
+            report.locationBreakdown[location] = {
+                count: 0,
+                dayCount: 0,
+                nightCount: 0
+            };
         }
-    }
+        report.locationBreakdown[location].count++;
+        if (scene.timeOfDay === 'DAY') {
+            report.locationBreakdown[location].dayCount++;
+        } else {
+            report.locationBreakdown[location].nightCount++;
+        }
+    });
+    
+    return report;
 }
 
 // AI 추천값 생성 (모의)
@@ -959,48 +961,87 @@ function getSuggestedValue(field, currentValue) {
     }
 }
 
-// 2단계: 오류 수정 렌더링
-function renderStep2ErrorScenes() {
+// 2단계: 분석 결과 리포트 렌더링
+function renderStep2AnalysisReport() {
     const container = document.getElementById('errorScenesList');
+    const report = generateAnalysisReport();
     
-    if (mockErrorScenes.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #27ae60;">
-                <h3>🎉 오류가 발견되지 않았습니다!</h3>
-                <p>AI 분석 결과 모든 씬이 정확하게 인식되었습니다.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    let errorsHTML = '';
-    mockErrorScenes.forEach((error, index) => {
-        errorsHTML += `
-            <div class="error-scene-item" data-error-index="${index}">
-                <div class="error-scene-header">
-                    <div class="error-icon">!</div>
-                    <div class="error-scene-title">${error.sceneNumber} - ${getFieldDisplayName(error.errorField)} 오류</div>
-                </div>
-                <div class="error-description">${error.errorDescription}</div>
-                <div class="error-field-edit">
-                    <div class="error-field-label">현재값:</div>
-                    <input type="text" class="error-field-input" 
-                           value="${error.currentValue}" 
-                           data-field="${error.errorField}" 
-                           data-scene-index="${error.sceneIndex}">
-                </div>
-                <div class="error-field-edit">
-                    <div class="error-field-label">AI 추천:</div>
-                    <div style="flex: 1; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 0.9rem;">
-                        ${error.suggestedValue}
-                        <button onclick="applySuggestion(${index})" style="margin-left: 8px; padding: 4px 8px; background: #3498db; color: white; border: none; border-radius: 2px; font-size: 0.8rem;">적용</button>
+    let reportHTML = `
+        <div class="analysis-report">
+            <!-- 요약 통계 -->
+            <div class="report-section">
+                <h4>📊 분석 요약</h4>
+                <div class="report-stats">
+                    <div class="stat-card">
+                        <div class="stat-number">${report.summary.totalScenes}</div>
+                        <div class="stat-label">총 씬 수</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${report.summary.totalLocations}</div>
+                        <div class="stat-label">촬영 장소</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${report.summary.totalCharacters}</div>
+                        <div class="stat-label">등장인물</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${report.summary.dayScenes}/${report.summary.nightScenes}</div>
+                        <div class="stat-label">주간/야간</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 장소별 분석 -->
+            <div class="report-section">
+                <h4>📍 장소별 촬영 분석</h4>
+                <div class="location-breakdown">
+    `;
+    
+    Object.entries(report.locationBreakdown).forEach(([location, data]) => {
+        reportHTML += `
+            <div class="location-item">
+                <div class="location-name">${location}</div>
+                <div class="location-stats">
+                    <span>총 ${data.count}씬</span>
+                    <span class="day-count">주간 ${data.dayCount}</span>
+                    <span class="night-count">야간 ${data.nightCount}</span>
                 </div>
             </div>
         `;
     });
     
-    container.innerHTML = errorsHTML;
+    reportHTML += `
+                </div>
+            </div>
+            
+            <!-- 주요 등장인물 -->
+            <div class="report-section">
+                <h4>👥 주요 등장인물</h4>
+                <div class="character-breakdown">
+    `;
+    
+    report.characterBreakdown.forEach(character => {
+        const name = character.name || character;
+        const appearances = character.appearances || 0;
+        const role = character.role || '미분류';
+        reportHTML += `
+            <div class="character-item">
+                <div class="character-name">${name}</div>
+                <div class="character-stats">
+                    <span class="character-role">${role}</span>
+                    <span class="character-count">${appearances}회 출현</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    reportHTML += `
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = reportHTML;
 }
 
 // 필드 표시명 가져오기
@@ -1614,10 +1655,10 @@ function updateStep2TextByAnalysisMode() {
     const step2Guide = document.getElementById('step2Guide');
     
     if (currentAnalysisMode === 'ai') {
-        step2Title.textContent = '2단계: AI가 감지한 오류를 확인하고 수정해주세요';
-        step2Guide.textContent = '빨간색으로 표시된 항목들을 확인하여 필요시 수정하세요. 모든 항목이 정확하다면 그대로 넘어가셔도 됩니다.';
+        step2Title.textContent = '2단계: AI 분석 결과를 확인해주세요';
+        step2Guide.textContent = 'AI가 분석한 대본 정보와 통계를 확인하세요. 내용이 정확한지 검토해주세요.';
     } else {
-        step2Title.textContent = '2단계: 분석 결과를 확인하고 수정해주세요';
-        step2Guide.textContent = '표시된 항목들을 확인하여 필요시 수정하세요. 모든 항목이 정확하다면 그대로 넘어가셔도 됩니다.';
+        step2Title.textContent = '2단계: 분석 결과를 확인해주세요';
+        step2Guide.textContent = '분석된 대본 정보와 통계를 확인하세요. 내용이 정확한지 검토해주세요.';
     }
 }
