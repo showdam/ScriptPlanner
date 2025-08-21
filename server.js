@@ -685,6 +685,7 @@ async function createExcelFile(analysisData) {
     
     // 주요 등장인물 추출 (상위 3명)
     const mainCharacters = analysisData.characters
+        .map(char => char.name || char) // 객체에서 name 추출 또는 문자열 그대로 사용
         .sort((a, b) => b.length - a.length)
         .slice(0, 3);
     
@@ -1247,8 +1248,9 @@ async function createExcelFile(analysisData) {
     // 등장인물 정보 추가 (characterFrequency 사용)
     if (analysisData.characterFrequency) {
         analysisData.characters.forEach(character => {
-            const count = analysisData.characterFrequency[character] || 0;
-            statsData.push([`- ${character}`, `${count}씬 출연`, '해당 인물이 등장하는 씬 수', '']);
+            const name = character.name || character;
+            const count = analysisData.characterFrequency[name] || 0;
+            statsData.push([`- ${name}`, `${count}씬 출연`, '해당 인물이 등장하는 씬 수', '']);
         });
     } else {
         // characterFrequency가 없는 경우 대안 로직
@@ -1262,8 +1264,9 @@ async function createExcelFile(analysisData) {
         });
         
         analysisData.characters.forEach(character => {
-            const count = characterCounts[character] || 0;
-            statsData.push([`- ${character}`, `${count}씬 출연`, '해당 인물이 등장하는 씬 수', '']);
+            const name = character.name || character;
+            const count = characterCounts[name] || 0;
+            statsData.push([`- ${name}`, `${count}씬 출연`, '해당 인물이 등장하는 씬 수', '']);
         });
     }
     
