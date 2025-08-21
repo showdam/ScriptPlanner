@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScriptPlanner MVP - 대본 분석 및 촬영계획표 생성</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 네비게이션 바 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>ScriptPlanner</h1>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link" data-page="intro">서비스 소개</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" data-page="planner">촬영 계획표 마법사</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- 모바일 안내 섹션 -->
+        <div class="mobile-warning-section" style="display: none;">
+            <div class="mobile-warning-content">
+                <h2>PC에서 이용해 주세요</h2>
+                <p>ScriptPlanner는 현재 데스크톱 환경에 최적화되어 있습니다.<br>
+                더 나은 경험을 위해 PC 또는 태블릿에서 접속해 주세요.</p>
+            </div>
+        </div>
+
+        <!-- 서비스 소개 페이지 -->
+        <div id="intro-page" class="page-content" style="display: none;">
+            <div class="intro-section">
+                <header class="intro-header">
+                    <h1>ScriptPlanner</h1>
+                    <p class="intro-subtitle">AI 기반 촬영계획표 자동 생성 서비스</p>
+                    
+                    <div class="hook">
+                        <strong>8시간 걸리던 촬영계획표 작업을 30분으로</strong><br>
+                        완벽하지 않아도 괜찮습니다. 시간 절약이 목표니까요.
+                    </div>
+                </header>
+
+                <div class="intro-content">
+                    <div class="story-section">
+                        <h2>왜 이 서비스를 만들었을까요?</h2>
+                        <div class="story">
+                            <p>
+                                저희도 드라마 제작 현장에서 일해봤습니다. 매번 새로운 프로젝트가 시작될 때마다 
+                                <span class="highlight">대본을 보며 씬리스트를 정리하고, 촬영계획표를 엑셀로 만드는 일</span>이 
+                                얼마나 시간 소모적이고 반복적인지 잘 알고 있어요.
+                            </p>
+                            <p>
+                                특히 <span class="highlight">밤새워 대본을 분석하고 촬영 순서를 짜는 PD님들</span>을 보면서 
+                                "이 과정을 자동화할 수 있다면 얼마나 좋을까?"라고 생각했습니다.
+                            </p>
+                            <p>
+                                그래서 만들었습니다. <strong>현장의 고충을 아는 사람이 만든, 현장을 위한 도구</strong>를요.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="features-list">
+                        <div class="feature-item">
+                            <div class="feature-number">1</div>
+                            <div class="feature-content">
+                                <h3 class="feature-title">대본 자동 분석</h3>
+                                <p class="feature-description">PDF, Word 파일을 업로드하면 AI가 씬 번호, 장소, 등장인물, 소품을 자동으로 추출합니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-number">2</div>
+                            <div class="feature-content">
+                                <h3 class="feature-title">스마트 인물 관리</h3>
+                                <p class="feature-description">등장인물을 출현 빈도별로 정리하고, 동일 인물의 다른 표기를 자동으로 통합해드립니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-number">3</div>
+                            <div class="feature-content">
+                                <h3 class="feature-title">촬영 순서 최적화</h3>
+                                <p class="feature-description">장소별 그룹핑, 이동시간 계산, 스케줄 충돌 감지로 효율적인 촬영 순서를 제안합니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-number">4</div>
+                            <div class="feature-content">
+                                <h3 class="feature-title">현장용 엑셀 생성</h3>
+                                <p class="feature-description">A4 가로 양식으로 즉시 인쇄 가능한 촬영계획표를 생성합니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-number">5</div>
+                            <div class="feature-content">
+                                <h3 class="feature-title">단계별 검토</h3>
+                                <p class="feature-description">AI 결과를 단계별로 검토하고 수정할 수 있어 정확도를 높입니다.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item">
+                            <div class="feature-number">6</div>
+                            <div class="feature-content">
+                                <h3 class="feature-title">빠른 처리</h3>
+                                <p class="feature-description">대부분의 대본을 2-3분 내에 분석하여 시간을 크게 절약합니다.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="workflow-section">
+                        <h2>사용 방법</h2>
+                        <div class="workflow-steps">
+                            <div class="workflow-step">
+                                <div class="step-number">1</div>
+                                <div class="step-content">
+                                    <h4>대본 업로드</h4>
+                                    <p>PDF 또는 Word 파일을 업로드하세요</p>
+                                </div>
+                            </div>
+                            <div class="workflow-step">
+                                <div class="step-number">2</div>
+                                <div class="step-content">
+                                    <h4>AI 분석</h4>
+                                    <p>2-3분 대기하시면 자동 분석이 완료됩니다</p>
+                                </div>
+                            </div>
+                            <div class="workflow-step">
+                                <div class="step-number">3</div>
+                                <div class="step-content">
+                                    <h4>검토 & 수정</h4>
+                                    <p>결과를 확인하고 필요한 부분을 수정하세요</p>
+                                </div>
+                            </div>
+                            <div class="workflow-step">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
+                                    <h4>다운로드</h4>
+                                    <p>엑셀 촬영계획표를 다운로드하여 사용하세요</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="expectations-section">
+                        <h3>현실적인 기대치를 알려드립니다</h3>
+                        <ul class="expectations-list">
+                            <li><strong>80% 자동화 + 20% 검토</strong>가 목표입니다. 100% 완벽한 자동화는 아직 어려워요.</li>
+                            <li><strong>시간 절약이 핵심</strong>입니다. 8시간 → 30분으로 단축하는 것이 목적이에요.</li>
+                            <li><strong>방송사/제작사별 양식 차이</strong>가 있을 수 있습니다. 기본 템플릿을 제공하지만 완벽하지 않을 수 있어요.</li>
+                            <li><strong>드라마/영화/웹드라마</strong> 등 장르별로 다른 요구사항이 있을 수 있습니다.</li>
+                            <li><strong>AI가 놓치는 부분</strong>이 있을 수 있습니다. 그래서 검토 단계를 꼼꼼히 설계했어요.</li>
+                            <li><strong>대본 작가님의 스타일</strong>에 따라 인식률이 달라질 수 있습니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="security-section">
+                        <h3>보안 걱정은 하지 마세요</h3>
+                        <p><strong>업로드된 대본은 분석 완료 즉시 자동으로 삭제</strong>됩니다.</p>
+                        <p>암호화된 연결로 전송되며, 어떤 직원도 파일 내용을 볼 수 없습니다.</p>
+                        <p>지적재산권 보호를 위해 클라우드 저장은 절대 하지 않습니다.</p>
+                    </div>
+
+                    <div class="speed-section">
+                        <h2>처리 속도 안내</h2>
+                        <div class="speed-info">
+                            <p><strong>일반적인 드라마 대본 (50-60페이지)</strong>: 2-3분 소요</p>
+                            <p><strong>장편 영화 대본 (100-120페이지)</strong>: 5-7분 소요</p>
+                            <p><strong>단편/웹드라마 (20-30페이지)</strong>: 1-2분 소요</p>
+                            <p class="speed-note">* 파일 크기, 서버 상황에 따라 시간이 달라질 수 있습니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="limitation-section">
+                        <h2>지원하지 않는 파일</h2>
+                        <div class="limitation-info">
+                            <p><strong>HWP 파일</strong>은 아직 지원하지 않습니다. Word 형식으로 저장 후 업로드해주세요.</p>
+                            <p><strong>스캔된 PDF</strong>는 텍스트 추출이 어려울 수 있습니다.</p>
+                            <p><strong>손글씨나 이미지</strong>가 포함된 대본은 인식하지 못할 수 있어요.</p>
+                            <p class="future-note">향후 HWP 직접 업로드, OCR 기능 등을 추가할 계획입니다.</p>
+                        </div>
+                    </div>
+
+                    <div class="quote-section">
+                        <h2>현장의 고충을 아는 도구</h2>
+                        <p>완벽하지 않아도 괜찮습니다.</p>
+                        <p>여러분의 시간을 소중하게 만드는 것이 저희의 목표입니다.</p>
+                    </div>
+
+                    <div class="cta-section">
+                        <button class="cta-button" onclick="showPlanner()">지금 무료로 체험하기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 촬영 계획표 마법사 페이지 -->
+        <div id="planner-page" class="page-content">
+
+        <!-- 서비스 헤더 설명 -->
+        <div class="service-header">
+            <div class="service-header-content">
+                <div class="service-title">
+                    <h1 class="title-main">
+                        드라마 촬영계획표 마법사
+                    </h1>
+                </div>
+                <p class="service-description">
+                    프로듀서를 위한 무료 도구입니다. 대본을 업로드하면 촬영계획표 작성을 위한 
+                    <strong>씬리스트, 등장인물 정리, 장소별 그룹핑, 촬영순서 추천</strong>으로 자동 변환합니다.
+                </p>
+                <div class="service-features">
+                    <div class="feature-item">
+                        <span class="feature-icon">🤖</span>
+                        <span class="feature-text">AI 정밀 분석</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📊</span>
+                        <span class="feature-text">4시트 엑셀 생성</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">⚡</span>
+                        <span class="feature-text">8시간→30분 단축</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🎬</span>
+                        <span class="feature-text">현장 바로 사용</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 입력 영역 -->
+        <main class="main-content">
+            <div class="input-section">
+                <h2>대본 텍스트 입력</h2>
+                <textarea 
+                    id="scriptInput" 
+                    placeholder="대본 텍스트를 붙여넣어 주세요...
+
+예시:
+S1. INT. 카페 - DAY
+주인공이 친구와 대화를 나눈다.
+주인공: 오늘 정말 힘든 하루였어.
+
+S2. EXT. 거리 - NIGHT  
+주인공이 혼자 걸어간다.
+비가 내리기 시작한다."
+                ></textarea>
+                
+                <div class="input-info">
+                    <span class="tip">S1, S2 등의 씬 번호와 장소를 포함해서 입력하세요</span>
+                    <span id="charCount">0자</span>
+                </div>
+            </div>
+
+            <!-- 분석 옵션 -->
+            <div class="analysis-options">
+                <h3 class="analysis-title">분석 방식 선택</h3>
+                
+                <div class="analysis-options-grid">
+                <!-- 기본 분석 (1순위) -->
+                <div class="analysis-option" onclick="selectAnalysisOption('rule')">
+                    <div class="option-header">
+                        <input type="radio" name="analysisMode" value="rule" class="option-radio" checked>
+                        <div>
+                            <h4 class="option-title">기본 분석 (안전함)
+                                <span class="security-badge">추천</span>
+                            </h4>
+                            <p class="option-subtitle">기본 정확도 · 로컬 처리 · 30초 완료</p>
+                        </div>
+                    </div>
+                    
+                    <div class="option-details">
+                        <div>
+                            <div class="detail-good">✓ 100% 로컬 처리</div>
+                            <div class="detail-good">✓ 빠른 속도</div>
+                            <div class="detail-good">✓ 무료</div>
+                        </div>
+                        <div>
+                            <div class="detail-neutral">• 정확도 65% 수준</div>
+                            <div class="detail-neutral">• 수동 수정 필요할 수 있음</div>
+                            <div class="detail-neutral">• 표준 형식 대본에 최적화</div>
+                        </div>
+                    </div>
+                    
+                    <div class="option-recommend">
+                        <strong>추천:</strong> 방송사 프로젝트, 기밀 작품, 빠른 초안 필요시
+                    </div>
+                </div>
+                
+                <!-- AI 분석 (2순위) -->
+                <div class="analysis-option disabled" data-disabled="true">
+                    <div class="option-header">
+                        <input type="radio" name="analysisMode" value="ai" class="option-radio" disabled>
+                        <div>
+                            <h4 class="option-title">AI 분석 (정확함) <span class="preparing-badge">(준비중)</span></h4>
+                            <p class="option-subtitle">정확도 높음 · 외부 서버 사용 · 2-3분 소요</p>
+                        </div>
+                    </div>
+                    
+                    <div class="option-details">
+                        <div>
+                            <div class="detail-good">✓ 정확도 90%</div>
+                            <div class="detail-good">✓ 복잡한 대본도 잘 분석</div>
+                            <div class="detail-good">✓ 등장인물 관계 파악</div>
+                        </div>
+                        <div>
+                            <div class="detail-neutral">• 대본이 외부 서버로 전송됨</div>
+                            <div class="detail-neutral">• 분석 완료 즉시 삭제</div>
+                            <div class="detail-neutral">• 인터넷 필요</div>
+                        </div>
+                    </div>
+                    
+                    <div class="option-recommend">
+                        <strong>추천:</strong> 웹드라마, 개인 창작물, 복잡한 구조의 대본
+                    </div>
+                </div>
+                </div>
+                
+                <!-- 간단 가이드 -->
+                <div class="analysis-guide">
+                    <div class="guide-content">
+                        <div><strong>빠르고 안전하게</strong> → 기본 분석 (추천)</div>
+                        <div><strong>정확도를 우선한다면</strong> → AI 분석</div>
+                        <div class="guide-note">
+                            * 두 방식 모두 엑셀에서 수정 가능합니다
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 분석 버튼 -->
+            <div class="action-section">
+                <button id="sampleBtn" class="btn-sample">샘플 텍스트로 테스트</button>
+                <button id="analyzeBtn" class="btn-primary">🚀 대본 분석하기</button>
+                <button id="downloadBtn" class="btn-secondary" disabled>엑셀 다운로드</button>
+            </div>
+
+            <!-- 결과 미리보기 -->
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <div class="preview-header">
+                    <h2>분석 결과 검토 및 수정</h2>
+                    <div class="preview-actions" id="previewActions">
+                        <button id="quickReviewBtn" class="btn-quick-review">🚀 빠른 검토 (3분)</button>
+                        <button id="editModeBtn" class="btn-edit">상세 수정</button>
+                        <button id="saveModeBtn" class="btn-save" style="display: none;">저장</button>
+                        <button id="cancelModeBtn" class="btn-cancel" style="display: none;">취소</button>
+                    </div>
+                </div>
+                
+                <!-- 분석 완료 후 다음 단계 안내 -->
+                <div class="next-step-guide" id="nextStepGuide" style="display: none;">
+                    <div class="next-step-content">
+                        <div class="success-icon">✅</div>
+                        <h3>분석이 완료되었습니다!</h3>
+                        <p>이제 AI 분석 결과를 검토하고 촬영계획표를 생성하세요.</p>
+                        
+                        <!-- 전체 진행률 표시 -->
+                        <div class="overall-progress">
+                            <div class="overall-progress-header">
+                                <span class="progress-title">전체 진행률</span>
+                                <span class="progress-percentage" id="overallProgressText">25% 완료</span>
+                            </div>
+                            <div class="overall-progress-bar">
+                                <div class="overall-progress-fill" id="overallProgressFill" style="width: 25%"></div>
+                            </div>
+                            <div class="progress-steps-mini">
+                                <span class="step-mini completed">분석</span>
+                                <span class="step-mini current">검토</span>
+                                <span class="step-mini">완료</span>
+                            </div>
+                        </div>
+                        
+                        <div class="next-step-options">
+                            <button id="startQuickReviewBtn" class="btn-primary-large">
+                                <div class="btn-content">
+                                    <span class="btn-icon">🚀</span>
+                                    <div class="btn-text">
+                                        <span class="btn-title">빠른 검토 시작</span>
+                                        <span class="btn-subtitle">3단계로 빠르게 완료 (약 3분)</span>
+                                    </div>
+                                </div>
+                            </button>
+                            <button id="detailedEditBtn" class="btn-secondary-large">
+                                <div class="btn-content">
+                                    <span class="btn-icon">⚙️</span>
+                                    <div class="btn-text">
+                                        <span class="btn-title">상세 수정</span>
+                                        <span class="btn-subtitle">모든 항목을 직접 편집</span>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 빠른 검토 모드 섹션 -->
+                <div class="quick-review-mode" id="quickReviewMode" style="display: none;">
+                    <div class="quick-review-header">
+                        <h3>🚀 빠른 검토 모드</h3>
+                        <p class="quick-review-subtitle">3단계로 빠르게 검토하고 바로 촬영계획표를 생성하세요</p>
+                        
+                        <!-- 전체 진행률 바 -->
+                        <div class="overall-progress-in-review">
+                            <div class="overall-progress-header">
+                                <span class="progress-title">전체 진행률</span>
+                                <span class="progress-percentage" id="reviewProgressText">50% 완료</span>
+                            </div>
+                            <div class="overall-progress-bar">
+                                <div class="overall-progress-fill" id="reviewProgressFill" style="width: 50%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- 검토 단계 진행률 -->
+                        <div class="review-step-progress">
+                            <div class="review-progress-header">
+                                <span class="step-progress-title">검토 단계</span>
+                                <span class="step-progress-text" id="stepProgressText">1/3 단계</span>
+                            </div>
+                            <div class="step-progress-bar">
+                                <div class="step-progress-fill" id="stepProgressFill" style="width: 33%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-indicator">
+                            <div class="progress-step active" data-step="1">
+                                <span class="step-number">1</span>
+                                <span class="step-title">주요 등장인물</span>
+                            </div>
+                            <div class="progress-step" data-step="2">
+                                <span class="step-number">2</span>
+                                <span class="step-title">오류 수정</span>
+                            </div>
+                            <div class="progress-step" data-step="3">
+                                <span class="step-number">3</span>
+                                <span class="step-title">촬영 순서</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 1단계: 주요 등장인물 선택 -->
+                    <div class="quick-step" id="quickStep1">
+                        <div class="step-content">
+                            <h4>1단계: 주요 등장인물 3명을 선택해주세요</h4>
+                            <p class="step-guide">촬영계획표에 표시될 주요 등장인물을 선택하세요. 선택하지 않은 인물은 '기타'로 분류됩니다.</p>
+                            <div class="main-characters-selection" id="mainCharactersSelection">
+                                <!-- 동적으로 생성됨 -->
+                            </div>
+                            <div class="step-actions">
+                                <button id="step1NextBtn" class="btn-step-next" disabled>다음 단계 →</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 2단계: 오류 수정 -->
+                    <div class="quick-step" id="quickStep2" style="display: none;">
+                        <div class="step-content">
+                            <h4 id="step2Title">2단계: 분석 결과를 확인하고 수정해주세요</h4>
+                            <p class="step-guide" id="step2Guide">표시된 항목들을 확인하여 필요시 수정하세요. 모든 항목이 정확하다면 그대로 넘어가셔도 됩니다.</p>
+                            <div class="error-scenes-list" id="errorScenesList">
+                                <!-- 동적으로 생성됨 -->
+                            </div>
+                            <div class="step-actions">
+                                <button id="step2PrevBtn" class="btn-step-prev">← 이전</button>
+                                <button id="step2NextBtn" class="btn-step-next">다음 단계 →</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 3단계: 촬영 순서 확인 -->
+                    <div class="quick-step" id="quickStep3" style="display: none;">
+                        <div class="step-content">
+                            <h4>📋 촬영 순서 확인</h4>
+                            <p class="step-guide">장소별 그룹핑 결과만 명확하게 제공하는 심플한 확인 UI</p>
+                            
+                            <!-- 그룹핑 결과 요약 -->
+                            <div class="grouping-summary">
+                                <h4>장소별 그룹핑 결과:</h4>
+                                <div class="location-flow" id="locationFlow">
+                                    <!-- 동적으로 생성됨 -->
+                                </div>
+                            </div>
+
+                            <!-- 상세 정보 카드들 -->
+                            <div class="location-details" id="locationDetails">
+                                <!-- 동적으로 생성됨 -->
+                            </div>
+
+                            <!-- 촬영 개요 -->
+                            <div class="shooting-overview">
+                                <h4>예상 촬영:</h4>
+                                <div class="overview-stats" id="overviewStats">
+                                    <!-- 동적으로 생성됨 -->
+                                </div>
+                            </div>
+
+                            <!-- 선택 옵션 -->
+                            <div class="schedule-options">
+                                <label class="option-item">
+                                    <input type="radio" name="schedule-choice" value="use-grouping" checked />
+                                    <span>이 순서로 촬영계획표 생성</span>
+                                </label>
+                                <label class="option-item">
+                                    <input type="radio" name="schedule-choice" value="manual-adjust" />
+                                    <span>기본 틀만 만들고 엑셀에서 조정</span>
+                                </label>
+                            </div>
+
+                            <!-- 안내 메시지 -->
+                            <div class="guide-message">
+                                💡 세부 시간과 순서는 엑셀에서 자유롭게 수정 가능합니다.
+                            </div>
+                            
+                            <div class="step-actions">
+                                <button id="step3PrevBtn" class="btn-step-prev">← 이전</button>
+                                <button id="generateFinalBtn" class="btn-generate-final">🎬 촬영계획표 생성하기</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats" id="statsInfo"></div>
+                
+                <!-- 수정 가능한 씬 리스트 -->
+                <div class="editable-scene-section">
+                    <h3>씬별 정보 수정</h3>
+                    <p class="edit-instruction">각 항목을 클릭하여 수정하실 수 있습니다. 수정 후 저장 버튼을 눌러주세요.</p>
+                    <div class="scene-list-editable" id="sceneListEditable"></div>
+                </div>
+                
+                <!-- 등장인물 관리 -->
+                <div class="character-management">
+                    <h3>등장인물 관리</h3>
+                    <p class="edit-instruction">등장인물 이름을 수정하거나 삭제할 수 있습니다.</p>
+                    <div class="character-list" id="characterList"></div>
+                    <div class="add-character-section">
+                        <input type="text" id="newCharacterInput" placeholder="새 등장인물 추가">
+                        <button id="addCharacterBtn" class="btn-add">추가</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 로딩 및 상태 -->
+        <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p>대본을 분석중입니다...</p>
+            </div>
+        </div>
+
+            <div id="statusMessage" class="status-message"></div>
+        </div>
+    </div>
+
+    <!-- 설문조사 섹션 -->
+    <div class="survey-section">
+        <div class="survey-content">
+            <h3 class="survey-title">💬 이 도구가 도움이 되셨나요?</h3>
+            <p class="survey-description">여러분의 소중한 피드백이 서비스 개선에 큰 도움이 됩니다</p>
+            <div class="survey-buttons">
+                <button class="survey-btn positive" onclick="submitFeedback('positive')">
+                    <span class="survey-emoji">👍</span>
+                    <span class="survey-text">도움됐어요!</span>
+                </button>
+                <button class="survey-btn negative" onclick="submitFeedback('negative')">
+                    <span class="survey-emoji">👎</span>
+                    <span class="survey-text">아쉬워요</span>
+                </button>
+                <button class="survey-btn suggestion" onclick="openSuggestionModal()">
+                    <span class="survey-emoji">💡</span>
+                    <span class="survey-text">개선 제안</span>
+                </button>
+            </div>
+            <div class="survey-thanks" id="surveyThanks" style="display: none;">
+                <p>✨ 소중한 피드백 감사합니다!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 개선 제안 모달 -->
+    <div class="suggestion-modal" id="suggestionModal" style="display: none;">
+        <div class="suggestion-modal-content">
+            <div class="suggestion-modal-header">
+                <h4>💡 개선 제안하기</h4>
+                <button class="suggestion-close" onclick="closeSuggestionModal()">×</button>
+            </div>
+            <div class="suggestion-modal-body">
+                <textarea 
+                    id="suggestionText" 
+                    placeholder="어떤 부분이 개선되면 좋을까요?&#10;&#10;예시:&#10;- 더 많은 파일 형식 지원&#10;- 특정 기능 추가 요청&#10;- 사용성 개선 제안 등"
+                    rows="6"
+                ></textarea>
+                <div class="suggestion-contact">
+                    <input type="email" id="suggestionEmail" placeholder="답변받을 이메일 (선택사항)">
+                </div>
+            </div>
+            <div class="suggestion-modal-footer">
+                <button class="btn-suggestion-cancel" onclick="closeSuggestionModal()">취소</button>
+                <button class="btn-suggestion-submit" onclick="submitSuggestion()">제안하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-main">
+                <div class="footer-brand">
+                    <h4>ScriptPlanner</h4>
+                    <p>현장의 고충을 아는 사람이 만든, 현장을 위한 도구</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h5>서비스</h5>
+                        <ul>
+                            <li><a href="#" onclick="showPage('intro')">서비스 소개</a></li>
+                            <li><a href="#" onclick="showPage('planner')">촬영계획표 마법사</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h5>지원</h5>
+                        <ul>
+                            <li><a href="mailto:showdam@gmail.com?subject=ScriptPlanner 문의">문의하기</a></li>
+                            <li><a href="#" onclick="openSuggestionModal()">개선 제안</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h5>관련 도구</h5>
+                        <ul>
+                            <li><a href="https://drama-formatter.vercel.app" target="_blank">드라마 대본 마법사</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div class="footer-bottom-content">
+                    <p>&copy; 2025 ScriptPlanner. 영상 제작 현장을 위한 도구입니다.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
