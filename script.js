@@ -860,7 +860,7 @@ function renderStep1MainCharacters() {
                 <div class="character-checkbox"></div>
                 <div class="character-info">
                     <div class="character-option-name">${name}</div>
-                    <div class="character-option-frequency">${frequency}회 출현</div>
+                    <div class="character-option-frequency">${frequency}회 출연</div>
                 </div>
             </div>
         `;
@@ -1029,7 +1029,7 @@ function renderStep2AnalysisReport() {
                 <div class="character-name">${name}</div>
                 <div class="character-stats">
                     <span class="character-role">${role}</span>
-                    <span class="character-count">${appearances}회 출현</span>
+                    <span class="character-count">${appearances}회 출연</span>
                 </div>
             </div>
         `;

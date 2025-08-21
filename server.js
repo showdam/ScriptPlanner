@@ -170,7 +170,7 @@ ${text}
   "characters": [
     {
       "name": "등장인물명",
-      "appearances": 출현_횟수,
+      "appearances": 출연_횟수,
       "role": "주연/조연/단역"
     }
   ],
@@ -363,7 +363,7 @@ function analyzeScript(text) {
         });
     }
     
-    // 등장인물을 출현 빈도순으로 정렬하고 AI 분석과 동일한 형식으로 변환
+    // 등장인물을 출연 빈도순으로 정렬하고 AI 분석과 동일한 형식으로 변환
     const sortedCharacters = Array.from(characters).sort((a, b) => {
         const freqA = characterFrequency.get(a) || 0;
         const freqB = characterFrequency.get(b) || 0;
@@ -1241,14 +1241,14 @@ async function createExcelFile(analysisData) {
         ['촬영 장소 수', analysisData.locations.length, '서로 다른 촬영 장소의 수', ''],
         ['등장인물 수', analysisData.characters.length, '대사가 있는 등장인물의 수', ''],
         ['', '', '', ''],
-        ['등장인물별 출현 정보', '', '', ''],
+        ['등장인물별 출연 정보', '', '', ''],
     ];
     
     // 등장인물 정보 추가 (characterFrequency 사용)
     if (analysisData.characterFrequency) {
         analysisData.characters.forEach(character => {
             const count = analysisData.characterFrequency[character] || 0;
-            statsData.push([`- ${character}`, `${count}씬 출현`, '해당 인물이 등장하는 씬 수', '']);
+            statsData.push([`- ${character}`, `${count}씬 출연`, '해당 인물이 등장하는 씬 수', '']);
         });
     } else {
         // characterFrequency가 없는 경우 대안 로직
@@ -1263,7 +1263,7 @@ async function createExcelFile(analysisData) {
         
         analysisData.characters.forEach(character => {
             const count = characterCounts[character] || 0;
-            statsData.push([`- ${character}`, `${count}씬 출현`, '해당 인물이 등장하는 씬 수', '']);
+            statsData.push([`- ${character}`, `${count}씬 출연`, '해당 인물이 등장하는 씬 수', '']);
         });
     }
     
