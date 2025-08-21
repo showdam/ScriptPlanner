@@ -1064,14 +1064,20 @@ function renderStep2AnalysisReport() {
                     <span class="time-badge ${scene.timeOfDay.toLowerCase()}">${timeIcon} ${scene.timeOfDay}</span>
                 </div>
                 <div class="scene-col-content">
-                    <div class="content-preview" id="content-preview-${index}">
-                        ${shortContent}
-                        ${isLongContent ? `<button class="expand-btn" onclick="toggleSceneContent(${index})" data-expanded="false">더보기</button>` : ''}
-                    </div>
-                    <div class="content-full" id="content-full-${index}" style="display: none;">
-                        ${scene.content}
-                        ${isLongContent ? `<button class="expand-btn" onclick="toggleSceneContent(${index})" data-expanded="true">접기</button>` : ''}
-                    </div>
+                    ${isLongContent ? `
+                        <div class="content-preview" id="content-preview-${index}">
+                            ${shortContent}
+                            <button class="expand-btn" onclick="toggleSceneContent(${index})" data-expanded="false">더보기</button>
+                        </div>
+                        <div class="content-full" id="content-full-${index}" style="display: none;">
+                            ${scene.content}
+                            <button class="expand-btn" onclick="toggleSceneContent(${index})" data-expanded="true">접기</button>
+                        </div>
+                    ` : `
+                        <div class="content-preview">
+                            ${scene.content}
+                        </div>
+                    `}
                 </div>
             </div>
         `;
