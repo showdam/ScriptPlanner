@@ -148,11 +148,7 @@ async function analyzeScript() {
     const analysisMode = document.querySelector('input[name="analysisMode"]:checked').value;
     const useAI = analysisMode === 'ai';
     
-    // AI 분석이 선택되었지만 아직 준비되지 않은 경우
-    if (useAI) {
-        showStatus('AI 분석 기능은 현재 준비 중입니다. 기본 분석을 사용해주세요.', 'error');
-        return;
-    }
+    // AI 분석 준비 완료!
     
     currentAnalysisMode = analysisMode; // 전역 변수에 저장
     
@@ -183,6 +179,11 @@ async function analyzeScript() {
         
         showPreview(data);
         showStatus('대본 분석이 완료되었습니다!', 'success');
+        
+        // AI 모드인 경우 파싱 규칙 검토 UI 표시
+        if (data.parsingMethod === 'pure-ai-rules' && data.parsingRules) {
+            showParsingRulesReview(data.parsingRules);
+        }
         
         // 다운로드 버튼 활성화
         document.getElementById('downloadBtn').disabled = false;
@@ -863,8 +864,17 @@ function updateProgressIndicator() {
 function renderStep1MainCharacters() {
     const container = document.getElementById('mainCharactersSelection');
     
+    // 등장인물을 언급 횟수 순으로 정렬 (많이 언급된 순서)
+    const sortedCharacters = [...analysisResult.characters].sort((a, b) => {
+        const nameA = a.name || a;
+        const nameB = b.name || b;
+        const freqA = a.appearances || analysisResult.characterFrequency[nameA] || 0;
+        const freqB = b.appearances || analysisResult.characterFrequency[nameB] || 0;
+        return freqB - freqA; // 내림차순 정렬 (많이 언급된 것부터)
+    });
+    
     let charactersHTML = '';
-    analysisResult.characters.forEach(character => {
+    sortedCharacters.forEach(character => {
         // character는 이제 {name, appearances, role} 객체
         const name = character.name || character;
         const frequency = character.appearances || analysisResult.characterFrequency[name] || 0;
@@ -875,7 +885,7 @@ function renderStep1MainCharacters() {
                 <div class="character-checkbox"></div>
                 <div class="character-info">
                     <div class="character-option-name">${name}</div>
-                    <div class="character-option-frequency">${frequency}회 출연</div>
+                    <div class="character-option-frequency">${frequency}회 언급</div>
                 </div>
             </div>
         `;
@@ -976,7 +986,192 @@ function getSuggestedValue(field, currentValue) {
     }
 }
 
+// 괄호 정리 전용 함수 (서버와 동일한 로직)
+function cleanBrackets(text) {
+    if (!text) return '';
+    
+    let cleaned = text;
+    
+    // 1. 여러번 반복하여 모든 괄호 문제 해결
+    for (let i = 0; i < 5; i++) { // 최대 5번 반복
+        const before = cleaned;
+        
+        // 빈 괄호 제거
+        cleaned = cleaned.replace(/\(\s*\)/g, '');
+        
+        // 중복 괄호 제거 (((내용))) -> (내용)
+        cleaned = cleaned.replace(/\(\(+([^)]+)\)+\)/g, '($1)');
+        
+        // 시작 괄호만 있는 경우: "보육원(" -> "보육원"
+        cleaned = cleaned.replace(/\(\s*$/g, '');
+        
+        // 끝 괄호만 있는 경우: ")보육원" -> "보육원"
+        cleaned = cleaned.replace(/^\s*\)/g, '');
+        
+        // 짝이 맞지 않는 괄호 수정
+        // 예: "연우집(컨테이너" -> "연우집 컨테이너"
+        const openCount = (cleaned.match(/\(/g) || []).length;
+        const closeCount = (cleaned.match(/\)/g) || []).length;
+        
+        if (openCount > closeCount) {
+            // 열린 괄호가 더 많음 - 끝에서 초과된 열린 괄호 제거
+            cleaned = cleaned.replace(/\([^)]*$/, function(match) {
+                // 괄호 내용을 일반 텍스트로 변환
+                return ' ' + match.substring(1);
+            });
+        } else if (closeCount > openCount) {
+            // 닫힌 괄호가 더 많음 - 앞에서 초과된 닫힌 괄호 제거
+            cleaned = cleaned.replace(/^[^(]*\)/, function(match) {
+                return match.replace(/\)/, ' ');
+            });
+        }
+        
+        // 변화가 없으면 종료
+        if (before === cleaned) break;
+    }
+    
+    // 2. 최종 정리
+    cleaned = cleaned
+        .replace(/\s+/g, ' ') // 여러 공백을 하나로
+        .replace(/^[\s()]+|[\s()]+$/g, '') // 앞뒤 공백과 괄호 제거
+        .trim();
+    
+    return cleaned;
+}
+
 // 2단계: 분석 결과 리포트 렌더링
+/**
+ * 비슷한 장소들을 그룹핑하는 함수
+ */
+function groupSimilarLocations(locationBreakdown) {
+    const groups = {};
+    
+    // 장소명에서 씬 번호 수집 함수
+    function getScenesForLocation(locationName) {
+        return analysisResult.scenes
+            .filter(scene => scene.location === locationName)
+            .map(scene => scene.number)
+            .sort((a, b) => parseInt(a.replace('S', '')) - parseInt(b.replace('S', '')));
+    }
+    
+    Object.entries(locationBreakdown).forEach(([location, data]) => {
+        // 기본 장소명 추출 (괄호, 공백 등 제거 개선)
+        let baseLocation = location;
+        
+        // 1. 괄호 정리 - 새로운 전용 함수 사용
+        baseLocation = cleanBrackets(baseLocation);
+        
+        // 2. 괄호 안 내용 제거 및 기본 정리
+        baseLocation = baseLocation
+            .replace(/\s*\([^)]*\)\s*/g, '') // 괄호 안 내용 제거
+            .replace(/\s*[-–—].*$/g, '') // 대시 뒤 내용 제거
+            .replace(/\s*(안|밖|내부|외부|앞|뒤|옆|근처)\s*$/g, '') // 끝에 오는 위치 수식어 제거
+            .replace(/\s+/g, ' ') // 여러 공백을 하나로
+            .trim();
+        
+        // 2. 특별한 경우들 처리 (더 정밀하게)
+        if (baseLocation.includes('준법지원센터') || baseLocation.includes('준법센터')) {
+            baseLocation = '경기 남부 준법지원센터';
+        } else if (baseLocation.includes('아파트')) {
+            // 아파트는 구체적인 이름이 있으면 유지
+            if (baseLocation.length > 3 && !baseLocation.match(/^아파트$/)) {
+                baseLocation = baseLocation.replace(/아파트.*$/, '아파트');
+            }
+        } else if (baseLocation.includes('대학') || baseLocation.includes('학교')) {
+            // 구체적인 학교명이 있으면 유지
+            const schoolMatch = baseLocation.match(/(.+?)(대학|학교)/);
+            if (schoolMatch && schoolMatch[1].length > 1) {
+                baseLocation = schoolMatch[1] + schoolMatch[2];
+            }
+        } else if (baseLocation.includes('회사') || baseLocation.includes('사무실')) {
+            // 구체적인 회사명이 있으면 유지
+            const companyMatch = baseLocation.match(/(.+?)(회사|사무실)/);
+            if (companyMatch && companyMatch[1].length > 1) {
+                baseLocation = companyMatch[1] + companyMatch[2];
+            }
+        }
+        
+        // 3. 최종 정리
+        if (!baseLocation || baseLocation.length === 0) {
+            baseLocation = '미정';
+        }
+        
+        // 그룹에 추가
+        if (!groups[baseLocation]) {
+            groups[baseLocation] = {
+                locations: []
+            };
+        }
+        
+        // 해당 장소의 씬 번호들 수집
+        const scenes = getScenesForLocation(location);
+        
+        groups[baseLocation].locations.push({
+            name: location,
+            count: data.count,
+            dayCount: data.dayCount,
+            nightCount: data.nightCount,
+            scenes: scenes
+        });
+    });
+    
+    return groups;
+}
+
+/**
+ * 장소 그룹 토글 함수
+ */
+function toggleLocationGroup(headerElement) {
+    const groupElement = headerElement.parentElement;
+    const detailsElement = groupElement.querySelector('.location-group-details');
+    const toggleIcon = headerElement.querySelector('.toggle-icon');
+    
+    if (detailsElement.style.display === 'none') {
+        detailsElement.style.display = 'block';
+        toggleIcon.textContent = '▼';
+        groupElement.classList.add('expanded');
+    } else {
+        detailsElement.style.display = 'none';
+        toggleIcon.textContent = '▶';
+        groupElement.classList.remove('expanded');
+    }
+}
+
+/**
+ * 등장인물 역할 분류 함수
+ */
+function classifyCharacterRoles(characters) {
+    // 언급 횟수 기준으로 정렬
+    const sortedCharacters = characters.sort((a, b) => {
+        const aAppearances = a.appearances || 0;
+        const bAppearances = b.appearances || 0;
+        return bAppearances - aAppearances;
+    });
+    
+    return sortedCharacters.map((character, index) => {
+        const appearances = character.appearances || 0;
+        let role = '조연';
+        
+        // 언급 횟수와 순서를 기반으로 역할 분류
+        if (appearances >= 10 && index < 3) {
+            role = '주연';
+        } else if (appearances >= 5 && index < 6) {
+            role = '주조연';
+        } else if (appearances >= 2) {
+            role = '조연';
+        } else if (appearances >= 1) {
+            role = '단역';
+        } else {
+            role = '언급없음';
+        }
+        
+        return {
+            ...character,
+            role: role
+        };
+    });
+}
+
 function renderStep2AnalysisReport() {
     const container = document.getElementById('errorScenesList');
     const report = generateAnalysisReport();
@@ -1008,18 +1203,50 @@ function renderStep2AnalysisReport() {
             
             <!-- 장소별 분석 -->
             <div class="report-section">
-                <h4>📍 장소별 촬영 분석</h4>
+                <h4>📍 촬영 장소별 분석</h4>
                 <div class="location-breakdown">
     `;
     
-    Object.entries(report.locationBreakdown).forEach(([location, data]) => {
+    // 비슷한 장소들을 그룹핑
+    const groupedLocations = groupSimilarLocations(report.locationBreakdown);
+    
+    Object.entries(groupedLocations).forEach(([groupName, group]) => {
+        const totalScenes = group.locations.reduce((sum, loc) => sum + loc.count, 0);
+        const totalDay = group.locations.reduce((sum, loc) => sum + loc.dayCount, 0);
+        const totalNight = group.locations.reduce((sum, loc) => sum + loc.nightCount, 0);
+        
         reportHTML += `
-            <div class="location-item">
-                <div class="location-name">${location}</div>
-                <div class="location-stats">
-                    <span>총 ${data.count}씬</span>
-                    <span class="day-count">주간 ${data.dayCount}</span>
-                    <span class="night-count">야간 ${data.nightCount}</span>
+            <div class="location-group">
+                <div class="location-group-header" onclick="toggleLocationGroup(this)">
+                    <div class="location-group-name">
+                        <span class="toggle-icon">▼</span>
+                        ${groupName}
+                        <span class="location-count">(${group.locations.length}개 세부 장소)</span>
+                    </div>
+                    <div class="location-group-stats">
+                        <span>총 ${totalScenes}씬</span>
+                        <span class="day-count">주간 ${totalDay}</span>
+                        <span class="night-count">야간 ${totalNight}</span>
+                    </div>
+                </div>
+                <div class="location-group-details">
+        `;
+        
+        group.locations.forEach(location => {
+            reportHTML += `
+                <div class="location-sub-item">
+                    <div class="location-sub-name">${location.name}</div>
+                    <div class="location-sub-stats">
+                        <span>S${location.scenes.join(', S')}</span>
+                        <span class="scene-count">${location.count}씬</span>
+                        <span class="day-count">주간 ${location.dayCount}</span>
+                        <span class="night-count">야간 ${location.nightCount}</span>
+                    </div>
+                </div>
+            `;
+        });
+        
+        reportHTML += `
                 </div>
             </div>
         `;
@@ -1035,16 +1262,23 @@ function renderStep2AnalysisReport() {
                 <div class="character-breakdown">
     `;
     
-    report.characterBreakdown.forEach(character => {
+    // 등장인물에 역할 분류 추가
+    const classifiedCharacters = classifyCharacterRoles(report.characterBreakdown);
+    
+    classifiedCharacters.forEach(character => {
         const name = character.name || character;
         const appearances = character.appearances || 0;
         const role = character.role || '미분류';
+        
+        // 0회 출연인 경우 스킵하거나 다르게 처리
+        if (appearances === 0) return;
+        
         reportHTML += `
             <div class="character-item">
                 <div class="character-name">${name}</div>
                 <div class="character-stats">
-                    <span class="character-role">${role}</span>
-                    <span class="character-count">${appearances}회 출연</span>
+                    <span class="character-role ${role.toLowerCase()}">${role}</span>
+                    <span class="character-count">${appearances}회 언급</span>
                 </div>
             </div>
         `;
@@ -1154,30 +1388,45 @@ function applySuggestion(errorIndex) {
 function renderStep3ShootingOrder() {
     const container = document.getElementById('shootingOrderRecommendation');
     
-    // 장소별로 씬 그룹핑
-    const locationGroups = {};
-    analysisResult.scenes.forEach((scene, index) => {
-        const location = scene.location;
-        if (!locationGroups[location]) {
-            locationGroups[location] = [];
-        }
-        locationGroups[location].push({ ...scene, originalIndex: index });
-    });
+    // 새로운 통합 그룹핑 사용
+    const groupedScenes = groupScenesByLocation(analysisResult.scenes);
     
     let groupsHTML = '';
-    Object.entries(locationGroups).forEach(([location, scenes]) => {
+    groupedScenes.forEach((group) => {
+        // 세부 장소 정보 표시
+        const subLocationsInfo = group.originalLocations && group.originalLocations.length > 1 
+            ? `<div class="sub-locations-info">
+                세부: ${group.originalLocations.map(loc => loc.name).join(', ')}
+               </div>` 
+            : '';
+        
+        // 시간대 분포 정보
+        const timeDistribution = [];
+        if (group.dayScenes > 0) timeDistribution.push(`낮 ${group.dayScenes}개`);
+        if (group.nightScenes > 0) timeDistribution.push(`밤 ${group.nightScenes}개`);
+        const timeInfo = timeDistribution.length > 0 ? ` (${timeDistribution.join(', ')})` : '';
+        
         groupsHTML += `
             <div class="location-group">
                 <div class="location-group-header">
                     <div class="location-icon">📍</div>
-                    <div class="location-group-title">${location}</div>
-                    <div style="margin-left: auto; font-size: 0.9rem; color: #666666;">${scenes.length}개 씬</div>
+                    <div class="location-group-info">
+                        <div class="location-group-title">${group.location}</div>
+                        ${subLocationsInfo}
+                    </div>
+                    <div class="location-group-stats">
+                        <div style="font-size: 0.9rem; color: #666666;">${group.totalScenes}개 씬${timeInfo}</div>
+                        <div style="font-size: 0.8rem; color: #888888;">예상 ${group.estimatedHours}시간</div>
+                    </div>
                 </div>
                 <div class="location-scenes">
-                    ${scenes.map(scene => `
+                    ${group.scenes.map(scene => `
                         <div class="scene-card" draggable="true" data-scene="${scene.number}">
                             <div class="scene-number-card">${scene.number}</div>
                             <div class="scene-time-card">${scene.timeOfDay}</div>
+                            <div class="scene-location-detail" title="원본 장소: ${scene.location}">
+                                ${scene.location !== group.location ? scene.location : ''}
+                            </div>
                         </div>
                     `).join('')}
                 </div>
@@ -1402,6 +1651,54 @@ ${suggestionText}
     closeSuggestionModal();
 }
 
+// 새로운 피드백 전송 함수
+async function submitSuggestionNew() {
+    const suggestionText = document.getElementById('suggestionText').value.trim();
+    const suggestionEmail = document.getElementById('suggestionEmail').value.trim();
+    
+    if (!suggestionText) {
+        alert('개선 제안 내용을 입력해주세요.');
+        return;
+    }
+    
+    // 로딩 상태 표시
+    const submitBtn = document.querySelector('.suggestion-submit');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = '전송 중...';
+    submitBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/send-feedback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: 'suggestion',
+                content: suggestionText,
+                userEmail: suggestionEmail || null
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('개선 제안이 성공적으로 전송되었습니다. 소중한 의견 감사합니다! 🙏');
+            closeSuggestionModal();
+        } else {
+            throw new Error(result.error || '전송 중 오류가 발생했습니다.');
+        }
+        
+    } catch (error) {
+        console.error('피드백 전송 오류:', error);
+        alert('전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+        // 버튼 상태 복구
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
 // 모달 외부 클릭시 닫기
 document.addEventListener('click', function(e) {
     const suggestionModal = document.getElementById('suggestionModal');
@@ -1463,21 +1760,54 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 장소별 씬 그룹핑
 function groupScenesByLocation(scenes) {
-    const groups = {};
-    const locations = [...new Set(scenes.map(scene => scene.location))];
-    
-    locations.forEach(location => {
-        const locationScenes = scenes.filter(scene => scene.location === location);
-        if (locationScenes.length > 0) {
-            groups[location] = {
-                location: location,
-                scenes: locationScenes.sort((a, b) => parseInt(a.number) - parseInt(b.number)),
-                estimatedHours: Math.ceil(locationScenes.length * 1.5)
+    // 먼저 장소별 분석 결과를 생성하여 그룹핑 정보 가져오기
+    const locationBreakdown = {};
+    scenes.forEach(scene => {
+        const location = scene.location || '미정';
+        if (!locationBreakdown[location]) {
+            locationBreakdown[location] = {
+                count: 0,
+                dayCount: 0,
+                nightCount: 0
             };
+        }
+        locationBreakdown[location].count++;
+        if (scene.timeOfDay === 'DAY') locationBreakdown[location].dayCount++;
+        if (scene.timeOfDay === 'NIGHT') locationBreakdown[location].nightCount++;
+    });
+    
+    // 비슷한 장소들을 그룹핑 (기존 그룹핑 로직 재사용)
+    const groupedLocations = groupSimilarLocations(locationBreakdown);
+    
+    // 그룹핑된 결과를 촬영 순서에 맞게 재구성
+    const finalGroups = [];
+    
+    Object.entries(groupedLocations).forEach(([groupName, group]) => {
+        // 해당 그룹의 모든 씬 수집
+        const allScenesInGroup = [];
+        group.locations.forEach(loc => {
+            const locationScenes = scenes.filter(scene => scene.location === loc.name);
+            allScenesInGroup.push(...locationScenes);
+        });
+        
+        if (allScenesInGroup.length > 0) {
+            finalGroups.push({
+                location: groupName,
+                originalLocations: group.locations, // 원본 세부 장소들
+                scenes: allScenesInGroup.sort((a, b) => {
+                    const aNum = parseInt(a.number.replace('S', ''));
+                    const bNum = parseInt(b.number.replace('S', ''));
+                    return aNum - bNum;
+                }),
+                estimatedHours: Math.ceil(allScenesInGroup.length * 1.5),
+                totalScenes: allScenesInGroup.length,
+                dayScenes: allScenesInGroup.filter(s => s.timeOfDay === 'DAY').length,
+                nightScenes: allScenesInGroup.filter(s => s.timeOfDay === 'NIGHT').length
+            });
         }
     });
     
-    return Object.values(groups);
+    return finalGroups;
 }
 
 // 시간대 분포 계산
@@ -1970,3 +2300,90 @@ function generateShootingPlanData() {
     
     return data;
 }
+
+// 간단한 샘플 엑셀 다운로드 함수
+async function downloadSampleExcel() {
+    const sampleBtn = document.querySelector('.sample-download-btn');
+    const originalText = sampleBtn.innerHTML;
+    
+    try {
+        console.log('샘플 다운로드 시작');
+        
+        // 버튼 상태 변경
+        sampleBtn.innerHTML = `
+            <span class="btn-text">생성 중...</span>
+            <span class="btn-icon">⏳</span>
+        `;
+        sampleBtn.disabled = true;
+        
+        // 간단한 GET 요청으로 샘플 엑셀 다운로드
+        console.log('API 요청 시작: /api/sample-excel');
+        const response = await fetch('/api/sample-excel');
+        console.log('API 응답 받음:', response.status, response.statusText);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        console.log('Blob 생성 중...');
+        const blob = await response.blob();
+        console.log('Blob 크기:', blob.size, 'bytes');
+        
+        const url = window.URL.createObjectURL(blob);
+        console.log('다운로드 URL 생성:', url);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '촬영계획표_샘플.xlsx';
+        document.body.appendChild(a);
+        console.log('다운로드 트리거');
+        a.click();
+        
+        // 정리
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        console.log('다운로드 완료 및 정리됨');
+
+        // 성공 상태
+        sampleBtn.innerHTML = `
+            <span class="btn-text">다운로드 완료!</span>
+            <span class="btn-icon">✅</span>
+        `;
+
+        // 3초 후 원래 상태로 복구
+        setTimeout(() => {
+            sampleBtn.innerHTML = originalText;
+            sampleBtn.disabled = false;
+        }, 3000);
+
+    } catch (error) {
+        console.error('샘플 다운로드 오류:', error);
+        
+        // 오류 상태
+        sampleBtn.innerHTML = `
+            <span class="btn-text">오류 발생</span>
+            <span class="btn-icon">❌</span>
+        `;
+
+        // 3초 후 원래 상태로 복구
+        setTimeout(() => {
+            sampleBtn.innerHTML = originalText;
+            sampleBtn.disabled = false;
+        }, 3000);
+    }
+}
+
+// 샘플 섹션 숨기기 함수
+function hideSampleSection() {
+    const sampleSection = document.getElementById('sampleSection');
+    if (sampleSection) {
+        sampleSection.style.display = 'none';
+    }
+}
+
+// downloadSampleExcel 함수 별칭 (기존 함수와 통합)
+function downloadSampleExcelSafe() {
+    downloadSampleExcel();
+}
+

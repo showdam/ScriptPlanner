@@ -6,6 +6,13 @@ const ExcelJS = require('exceljs');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
 const rateLimit = require('express-rate-limit');
+const nodemailer = require('nodemailer');
+
+// 새로운 AI 파싱 시스템 모듈들
+const { extractSampleScenes } = require('./src/parser/sampleExtractor');
+const { generateParsingRules } = require('./src/parser/ruleGenerator');
+const { parseScriptLocally, convertToStandardFormat } = require('./src/parser/localParser');
+const { analyzeWithCommonRules, generateHybridRules, needsAIAnalysis } = require('./src/parser/commonRules');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -147,116 +154,57 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static('.'));
 
 // Claude AI를 사용한 대본 분석 함수
+// 순수 AI 파싱 시스템: 샘플 기반 규칙 생성 + 로컬 파싱
 async function analyzeScriptWithAI(text) {
-    const SCRIPT_ANALYSIS_PROMPT = `
-당신은 한국 영상 제작 전문가입니다. 업로드된 대본을 분석해서 촬영계획표 작성에 필요한 정보를 정확하게 추출해주세요.
-
-대본:
-${text}
-
-다음 정보를 JSON 형식으로 추출해주세요:
-
-{
-  "scenes": [
-    {
-      "number": "씬 번호 (예: S1, S2)",
-      "timeOfDay": "DAY 또는 NIGHT",
-      "location": "촬영 장소",
-      "content": "씬 내용 요약 (50자 이내)",
-      "characters": ["등장인물 목록"],
-      "confidence": 0.9
-    }
-  ],
-  "characters": [
-    {
-      "name": "등장인물명",
-      "appearances": 출연_횟수,
-      "role": "주연/조연/단역"
-    }
-  ],
-  "locations": ["장소1", "장소2"],
-  "totalScenes": 총_씬_수
-}
-
-주의사항:
-- 반드시 유효한 JSON만 응답하세요
-- 씬 번호는 S1, S2 형식으로 통일
-- 등장인물의 다양한 호칭을 통합해서 처리
-- 확실하지 않은 정보는 confidence를 낮게 설정
-- 장소명은 간결하게 정리
-
-응답:`;
-
     try {
-        console.log('Claude AI 분석 시작...');
+        console.log('🤖 순수 AI 파싱 시스템 시작...');
+        const startTime = Date.now();
         
-        const response = await anthropic.messages.create({
-            model: "claude-3-5-sonnet-20241022",
-            max_tokens: 4000,
-            messages: [{
-                role: "user",
-                content: SCRIPT_ANALYSIS_PROMPT
-            }]
-        });
-
-        const aiResponse = response.content[0].text;
-        console.log('Claude AI 응답 수신:', aiResponse.substring(0, 200) + '...');
+        // 1단계: 샘플 씬 추출 (5개)
+        console.log('🔍 1단계: 대표 샘플 씬 추출...');
+        const sampleScenes = extractSampleScenes(text);
+        console.log(`   추출된 샘플: ${sampleScenes.length}개`);
         
-        // 사용량 추적 (실제 토큰 사용량)
-        const inputTokens = response.usage?.input_tokens || usageTracker.estimateTokens(text);
-        const outputTokens = response.usage?.output_tokens || usageTracker.estimateTokens(aiResponse);
-        const estimatedCost = usageTracker.estimateCost(inputTokens, outputTokens);
+        // 2단계: AI로 파싱 규칙 생성 (순수 AI 분석)
+        console.log('🧠 2단계: AI 파싱 규칙 생성...');
+        const ruleGenResult = await generateParsingRules(sampleScenes);
+        const confidence = ruleGenResult.rules.confidence;
+        console.log(`   규칙 생성 완료: 신뢰도 ${Math.round(confidence * 100)}%`);
         
-        // 사용량 기록
+        // 사용량 추적 (샘플 분석만)
+        const estimatedTokens = usageTracker.estimateTokens(
+            sampleScenes.map(s => s.content).join('\n')
+        );
+        const estimatedCost = usageTracker.estimateCost(estimatedTokens, 500);
         usageTracker.addDailyUsage(estimatedCost);
         usageTracker.addMonthlyUsage(estimatedCost);
+        console.log(`💰 AI 사용량: $${estimatedCost.toFixed(4)} (샘플 분석만)`);
         
-        console.log(`💰 API 사용량: $${estimatedCost.toFixed(4)} (입력: ${inputTokens}, 출력: ${outputTokens} 토큰)`);
+        // 3단계: 로컬에서 전체 대본 파싱 (빠르고 비용 없음)
+        console.log('⚡ 3단계: 로컬 파싱 실행...');
+        const localResult = parseScriptLocally(text, ruleGenResult.rules);
         
-        // JSON 응답 파싱
-        let analysisResult;
-        try {
-            // JSON 코드 블록에서 실제 JSON 추출
-            const jsonMatch = aiResponse.match(/```json\n(.*?)\n```/s) || aiResponse.match(/\{.*\}/s);
-            const jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : aiResponse;
-            analysisResult = JSON.parse(jsonString);
-        } catch (parseError) {
-            console.error('JSON 파싱 실패, 규칙 기반 분석으로 대체:', parseError);
-            return analyzeScript(text); // 파싱 실패시 기존 규칙 기반 분석 사용
-        }
-
-        // AI 결과를 기존 형식에 맞게 변환
-        const formattedResult = {
-            scenes: analysisResult.scenes.map(scene => ({
-                number: scene.number,
-                timeOfDay: scene.timeOfDay,
-                location: scene.location,
-                content: scene.content,
-                characters: scene.characters || [],
-                confidence: scene.confidence || 0.8
-            })),
-            locations: analysisResult.locations || [],
-            characters: analysisResult.characters ? 
-                analysisResult.characters.map(char => char.name) : [],
-            characterFrequency: {},
-            totalScenes: analysisResult.totalScenes || analysisResult.scenes.length
-        };
-
-        // 등장인물 빈도 계산
-        if (analysisResult.characters) {
-            analysisResult.characters.forEach(char => {
-                formattedResult.characterFrequency[char.name] = char.appearances;
-            });
-        }
-
-        console.log('AI 분석 완료:', formattedResult.totalScenes, '씬');
-        return formattedResult;
+        // 4단계: 표준 형식으로 변환
+        const standardResult = convertToStandardFormat(localResult);
+        
+        const endTime = Date.now();
+        const totalTime = endTime - startTime;
+        
+        console.log(`✅ AI 파싱 완료: ${standardResult.totalScenes}개 씬, ${totalTime}ms`);
+        console.log(`📊 효율성: AI는 샘플만, 로컬에서 전체 처리`);
+        
+        // 결과에 파싱 방법 정보 추가
+        standardResult.parsingMethod = 'pure-ai-rules';
+        standardResult.aiCost = estimatedCost;
+        standardResult.aiUsed = true;
+        
+        return standardResult;
 
     } catch (error) {
-        console.error('Claude AI 분석 실패:', error.message);
-        console.log('규칙 기반 분석으로 대체 실행...');
+        console.error('❌ AI 파싱 시스템 실패:', error.message);
+        console.log('🔄 기존 규칙 기반 분석으로 대체...');
         
-        // AI 분석 실패시 기존 규칙 기반 분석 사용
+        // 실패시 기존 시스템 사용
         return analyzeScript(text);
     }
 }
@@ -407,66 +355,174 @@ function extractTimeOfDay(line, nextLine = '') {
 
 // 장소 추출 헬퍼 함수
 function extractLocation(line, nextLine = '') {
-    // 표준 스크립트 형식 처리
-    const standardMatch = line.match(/^(INT\.|EXT\.)\s+(.+?)\s+-\s+(DAY|NIGHT)/i);
+    // 씬 특성 키워드 (장소가 아닌 씬의 특성/기법)
+    const sceneCharacteristics = /^(과거|회상|플래시백|FLASHBACK|몽타주|MONTAGE|슬로모션|SLOW|빨리감기|FAST|삽입|INSERT|INS\.|CUT|CUT TO|Cut to|FADE|DISSOLVE|클로즈업|CLOSE|미디엄|MEDIUM|풀샷|FULL|항공|AERIAL|POV|주관적|객관적)/i;
+    
+    // 시간 키워드 (더 포괄적)
+    const timeKeywords = /^(DAY|NIGHT|낮|밤|아침|저녁|새벽|오전|오후|이른아침|늦은저녁|심야|자정|정오|D|N)$/i;
+    
+    let rawLocation = '';
+    
+    // 표준 스크립트 형식 처리 (INT./EXT.)
+    const standardMatch = line.match(/^(INT\.|EXT\.)\s+(.+?)\s*[-,]\s*(DAY|NIGHT|낮|밤)/i);
     if (standardMatch) {
-        return standardMatch[2].trim();
+        rawLocation = standardMatch[2].trim();
     }
-    
-    // 한국식 형식 처리
-    const koreanMatch = line.match(/(내부|외부|안|밖|INT|EXT)[.\s]*([^-\n(]+)/i);
-    if (koreanMatch) {
-        let location = koreanMatch[2].trim();
-        // 시간대 정보 제거
-        location = location.replace(/(DAY|NIGHT|낮|밤|야간|저녁|아침|오전|오후)/gi, '').trim();
-        location = location.replace(/^[,\-.\s]+|[,\-.\s]+$/g, ''); // 앞뒤 구두점 제거
-        if (location.length > 0) {
-            return location;
+    // #S 패턴 처리 (#S1 저녁, 아파트 (복도))
+    else {
+        const hashSceneMatch = line.match(/^#S\d+\s+(.+)$/i);
+        if (hashSceneMatch) {
+            rawLocation = hashSceneMatch[1].trim();
+        }
+        // 한국식 형식 처리 (씬1, S1 등)
+        else {
+            const simpleMatch = line.match(/^(?:씬\s*\d+|S\s*\d+|Scene\s*\d+)[.\s]*(.+)$/i);
+            if (simpleMatch) {
+                rawLocation = simpleMatch[1].trim();
+            }
+            // 일반 텍스트에서 장소 추출 시도
+            else if (line.trim().length > 0 && !line.includes(':')) {
+                rawLocation = line.trim();
+            }
         }
     }
     
-    // #S1, #S2 패턴 처리 (대본_고잉홈.pdf 스타일)
-    const hashSceneMatch = line.match(/^#S\d+\s+(.+)$/i);
-    if (hashSceneMatch) {
-        let location = hashSceneMatch[1].trim();
-        // 시간대 정보 제거
-        location = location.replace(/(DAY|NIGHT|낮|밤|야간|저녁|아침|오전|오후)/gi, '').trim();
-        location = location.replace(/^[-,.\s]+|[-,.\s]+$/g, '');
-        if (location.length > 0 && location.length < 100) { // 더 긴 장소명 허용
-            return location;
+    if (!rawLocation) {
+        return '미정';
+    }
+    
+    // 장소 정제 프로세스
+    let cleanedLocation = rawLocation;
+    
+    // 1. 시간대와 장소가 콤마로 구분된 경우 처리 ("새벽,연우집" → "연우집")
+    const timeLocationSplit = cleanedLocation.split(',');
+    if (timeLocationSplit.length === 2) {
+        const firstPart = timeLocationSplit[0].trim();
+        const secondPart = timeLocationSplit[1].trim();
+        
+        // 첫 번째가 시간대면 두 번째를 장소로 사용
+        if (timeKeywords.test(firstPart)) {
+            cleanedLocation = secondPart;
+        }
+        // 두 번째가 시간대면 첫 번째를 장소로 사용
+        else if (timeKeywords.test(secondPart)) {
+            cleanedLocation = firstPart;
+        }
+        // 둘 다 시간대가 아니면 더 긴 쪽을 장소로 판단
+        else {
+            cleanedLocation = firstPart.length >= secondPart.length ? firstPart : secondPart;
         }
     }
     
-    // 시간대가 포함된 씬 헤더 처리 (#S5 저녁, 아파트 (복도))
-    const timeLocationMatch = line.match(/^#S\d+\s+(저녁|아침|낮|밤|새벽|오전|오후|심야),?\s*(.+)$/i);
-    if (timeLocationMatch) {
-        let location = timeLocationMatch[2].trim();
-        location = location.replace(/^[-,.\s]+|[-,.\s]+$/g, '');
-        if (location.length > 0 && location.length < 100) {
-            return location;
+    // 2. 슬래시로 구분된 경우 처리 ("과거회상/놀이터" → "놀이터")
+    const slashSplit = cleanedLocation.split('/');
+    if (slashSplit.length === 2) {
+        const firstPart = slashSplit[0].trim();
+        const secondPart = slashSplit[1].trim();
+        
+        // 첫 번째가 씬 특성이면 두 번째를 장소로 사용
+        if (sceneCharacteristics.test(firstPart)) {
+            cleanedLocation = secondPart;
+        }
+        // 두 번째가 씬 특성이면 첫 번째를 장소로 사용
+        else if (sceneCharacteristics.test(secondPart)) {
+            cleanedLocation = firstPart;
+        }
+        // 둘 다 씬 특성이 아니면 더 긴 쪽을 장소로 판단
+        else {
+            cleanedLocation = firstPart.length >= secondPart.length ? firstPart : secondPart;
         }
     }
     
-    // 심플한 패턴 처리 (S1. 카페, 씬1 거실 등)
-    const simpleMatch = line.match(/^[S씬Scene#\d\s.]+\s*(.+)$/i);
-    if (simpleMatch) {
-        let location = simpleMatch[1].trim();
-        location = location.replace(/(DAY|NIGHT|낮|밤|야간|저녁|아침|오전|오후)/gi, '').trim();
-        location = location.replace(/^[-,.\s]+|[-,.\s]+$/g, '');
-        if (location.length > 0 && location.length < 50) {
-            return location;
-        }
+    // 3. 시간대 키워드 제거
+    cleanedLocation = cleanedLocation.replace(/(DAY|NIGHT|낮|밤|야간|저녁|아침|오전|오후|새벽|심야|자정|정오)/gi, '').trim();
+    
+    // 4. 씬 특성 키워드 제거
+    cleanedLocation = cleanedLocation.replace(/(과거|회상|플래시백|FLASHBACK|몽타주|MONTAGE)/gi, '').trim();
+    
+    // 5. 앞뒤 구두점 및 공백 정리
+    cleanedLocation = cleanedLocation.replace(/^[-,./\s]+|[-,./\s]+$/g, '').trim();
+    
+    // 6. 괄호 정리 - 더 체계적으로 처리
+    cleanedLocation = cleanBrackets(cleanedLocation);
+    
+    // 7. 최종 검증 - 빈 문자열이나 문제 있는 경우 처리
+    if (!cleanedLocation || cleanedLocation.length === 0 || cleanedLocation === ')' || cleanedLocation === '(') {
+        return '미정';
     }
     
-    return '미정';
+    // 8. 최종 검증
+    if (cleanedLocation.length === 0 || cleanedLocation.length > 100) {
+        return '미정';
+    }
+    
+    // 9. 시간대만 남은 경우 확인
+    if (timeKeywords.test(cleanedLocation)) {
+        return '미정';
+    }
+    
+    return cleanedLocation;
+}
+
+// 괄호 정리 전용 함수
+function cleanBrackets(text) {
+    if (!text) return '';
+    
+    let cleaned = text;
+    
+    // 1. 여러번 반복하여 모든 괄호 문제 해결
+    for (let i = 0; i < 5; i++) { // 최대 5번 반복
+        const before = cleaned;
+        
+        // 빈 괄호 제거
+        cleaned = cleaned.replace(/\(\s*\)/g, '');
+        
+        // 중복 괄호 제거 (((내용))) -> (내용)
+        cleaned = cleaned.replace(/\(\(+([^)]+)\)+\)/g, '($1)');
+        
+        // 시작 괄호만 있는 경우: "보육원(" -> "보육원"
+        cleaned = cleaned.replace(/\(\s*$/g, '');
+        
+        // 끝 괄호만 있는 경우: ")보육원" -> "보육원"
+        cleaned = cleaned.replace(/^\s*\)/g, '');
+        
+        // 짝이 맞지 않는 괄호 수정
+        // 예: "연우집(컨테이너" -> "연우집 컨테이너"
+        const openCount = (cleaned.match(/\(/g) || []).length;
+        const closeCount = (cleaned.match(/\)/g) || []).length;
+        
+        if (openCount > closeCount) {
+            // 열린 괄호가 더 많음 - 끝에서 초과된 열린 괄호 제거
+            cleaned = cleaned.replace(/\([^)]*$/, function(match) {
+                // 괄호 내용을 일반 텍스트로 변환
+                return ' ' + match.substring(1);
+            });
+        } else if (closeCount > openCount) {
+            // 닫힌 괄호가 더 많음 - 앞에서 초과된 닫힌 괄호 제거
+            cleaned = cleaned.replace(/^[^(]*\)/, function(match) {
+                return match.replace(/\)/, ' ');
+            });
+        }
+        
+        // 변화가 없으면 종료
+        if (before === cleaned) break;
+    }
+    
+    // 2. 최종 정리
+    cleaned = cleaned
+        .replace(/\s+/g, ' ') // 여러 공백을 하나로
+        .replace(/^[\s()]+|[\s()]+$/g, '') // 앞뒤 공백과 괄호 제거
+        .trim();
+    
+    return cleaned;
 }
 
 // 등장인물 추출 헬퍼 함수
 function extractCharacters(line) {
     const characters = [];
     
-    // 기본 패턴: "이름:" 형태
-    const basicMatch = line.match(/^([가-힣a-zA-Z0-9\s]+)\s*:/);
+    // 기본 패턴: "이름:" 형태 - 더 엄격한 검증
+    const basicMatch = line.match(/^([가-힣a-zA-Z][가-힣a-zA-Z0-9\s]{1,19})\s*:/);
     if (basicMatch) {
         const name = basicMatch[1].trim();
         if (isValidCharacterName(name)) {
@@ -474,17 +530,8 @@ function extractCharacters(line) {
         }
     }
     
-    // 괄호 안 등장인물: (주인공), (to 친구) 등
-    const parenthesesMatches = line.matchAll(/\(([^)]*)\)/g);
-    for (const match of parenthesesMatches) {
-        const content = match[1].trim().toLowerCase();
-        if (!content.includes('to') && !content.includes('cont') && !content.includes('continued')) {
-            const name = match[1].trim();
-            if (isValidCharacterName(name) && !characters.includes(name)) {
-                characters.push(name);
-            }
-        }
-    }
+    // 괄호 안의 내용은 대부분 지문이므로 캐릭터로 인식하지 않음
+    // 예: (놀라며), (대답 없음), (화면 효과) 등은 모두 제외
     
     return characters;
 }
@@ -506,18 +553,47 @@ function extractAllCharacters(text) {
 function isValidCharacterName(name) {
     if (!name || name.length === 0 || name.length > 20) return false;
     
-    // 제외할 단어들
+    // 장면 효과 및 기술적 용어 제외
+    const sceneEffects = [
+        /^[A-Z]$/, // 단일 대문자 (E, O, L 등)
+        /^[A-Z]\.L$/i, // O.L, E.L 등
+        /^V\.?O\.?$/i, // V.O, VO (Voice Over)
+        /^O\.?S\.?$/i, // O.S (Off Screen)
+        /^CONT\.?$/i, // CONT (Continued)
+        /^CUT$/i, // CUT
+        /^FADE$/i, // FADE
+        /^INSERT$/i, // INSERT
+        /^INT$/i, // INT
+        /^EXT$/i, // EXT
+        /^SCENE$/i // SCENE
+    ];
+    
+    // 장면 효과 패턴 매칭 시 제외
+    if (sceneEffects.some(pattern => pattern.test(name.trim()))) {
+        return false;
+    }
+    
+    // 제외할 단어들 (기존 + 추가)
     const excludeWords = [
         'int', 'ext', 'fade', 'cut', 'scene', 'day', 'night',
         '내부', '외부', '낮', '밤', '씬', '장면', '페이드', '컷',
         'voice', 'over', 'narration', '내레이션', '해설',
-        'continued', 'cont', '계속'
+        'continued', 'cont', '계속', 'insert', 'close', 'medium',
+        'wide', 'shot', 'angle', 'pov', 'montage', '몽타주',
+        'flashback', '회상', '과거', 'slow', 'fast', '음향', '효과',
+        'sound', 'music', '음악', 'bgm'
     ];
     
     const lowerName = name.toLowerCase();
     if (excludeWords.some(word => lowerName.includes(word))) {
         return false;
     }
+    
+    // 단일 문자 제외 (A, B, C, ㄱ, ㄴ 등)
+    if (name.trim().length === 1) return false;
+    
+    // 2글자 미만은 제외 (너무 짧은 이름)
+    if (name.trim().length < 2) return false;
     
     // 숫자만 있는 경우 제외
     if (/^\d+$/.test(name)) return false;
@@ -528,11 +604,14 @@ function isValidCharacterName(name) {
     // 괄호로 둘러싸인 설명 제외
     if (/^\(.+\)$/.test(name.trim())) return false;
     
-    // 특수문자가 많은 경우 제외
-    if ((name.match(/[^가-힣a-zA-Z0-9\s]/g) || []).length > 2) return false;
+    // 특수문자가 많은 경우 제외 (점, 콤마 등)
+    if ((name.match(/[^가-힣a-zA-Z0-9\s]/g) || []).length > 1) return false;
     
     // 한글이나 영문 문자가 포함되어야 함
     if (!/[가-힣a-zA-Z]/.test(name)) return false;
+    
+    // 연속된 점이나 특수문자가 있는 경우 제외
+    if (/[.]{2,}|[-]{2,}|[_]{2,}/.test(name)) return false;
     
     return true;
 }
@@ -1390,6 +1469,50 @@ app.post('/api/analyze', hourlyLimiter, dailyLimiter, costLimitMiddleware, async
 });
 
 // 엑셀 다운로드
+// 샘플 엑셀 다운로드 전용 엔드포인트
+app.get('/api/sample-excel', async (req, res) => {
+    try {
+        console.log('샘플 엑셀 다운로드 요청');
+        
+        // 저장된 샘플 Excel 파일 직접 제공
+        const sampleFilePath = path.join(__dirname, 'sample_template.xlsx');
+        
+        // 파일 존재 확인
+        if (!require('fs').existsSync(sampleFilePath)) {
+            throw new Error('샘플 파일을 찾을 수 없습니다.');
+        }
+        
+        // 응답 헤더 설정
+        const filename = '촬영계획표_샘플.xlsx';
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+        
+        // 파일 직접 전송
+        const fileStream = require('fs').createReadStream(sampleFilePath);
+        fileStream.pipe(res);
+        
+        fileStream.on('end', () => {
+            console.log('샘플 엑셀 다운로드 완료');
+        });
+        
+        fileStream.on('error', (error) => {
+            console.error('파일 스트림 오류:', error);
+            if (!res.headersSent) {
+                res.status(500).json({ 
+                    error: '파일 전송 중 오류가 발생했습니다.' 
+                });
+            }
+        });
+        
+    } catch (error) {
+        console.error('샘플 엑셀 생성 오류:', error);
+        res.status(500).json({ 
+            error: '샘플 엑셀 파일 생성 중 오류가 발생했습니다.',
+            details: error.message 
+        });
+    }
+});
+
 app.post('/api/download', async (req, res) => {
     try {
         const analysisData = req.body;
@@ -1416,6 +1539,41 @@ app.post('/api/download', async (req, res) => {
         console.error('Download error:', error);
         res.status(500).json({ 
             error: '엑셀 파일 생성 중 오류가 발생했습니다.' 
+        });
+    }
+});
+
+// 새로운 AI 파싱 시스템 테스트 엔드포인트
+app.post('/api/test-parsing', async (req, res) => {
+    try {
+        const { testScriptName } = req.body;
+        const { runAllTests, testSingleScript } = require('./src/parser/testRunner');
+        
+        if (testScriptName) {
+            // 특정 스크립트 테스트
+            const testDir = path.join(__dirname, 'test-scripts');
+            const result = await testSingleScript(testDir, testScriptName);
+            res.json({
+                success: true,
+                testResult: result
+            });
+        } else {
+            // 전체 테스트 실행
+            const results = await runAllTests();
+            res.json({
+                success: true,
+                totalTests: results.length,
+                passed: results.filter(r => r.success).length,
+                failed: results.filter(r => !r.success).length,
+                results: results
+            });
+        }
+        
+    } catch (error) {
+        console.error('테스트 실행 실패:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });
@@ -1466,6 +1624,71 @@ app.get('/style.css', (req, res) => {
 app.get('/script.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.sendFile(path.join(__dirname, 'script.js'));
+});
+
+// 피드백 이메일 전송 API
+app.post('/api/send-feedback', express.json(), async (req, res) => {
+    try {
+        const { type, content, userEmail } = req.body;
+        
+        if (!content || content.trim().length === 0) {
+            return res.status(400).json({ 
+                error: '피드백 내용을 입력해주세요.' 
+            });
+        }
+        
+        // Gmail을 통한 이메일 전송 설정 (앱 비밀번호 사용)
+        // 실제 운영시에는 환경변수로 관리
+        const transporter = nodemailer.createTransporter({
+            service: 'gmail',
+            auth: {
+                user: 'showdam@gmail.com', // 발송자 이메일
+                pass: process.env.GMAIL_APP_PASSWORD || 'your-app-password-here' // Gmail 앱 비밀번호
+            }
+        });
+        
+        // 이메일 내용 구성
+        const emailSubject = type === 'suggestion' ? 
+            '[ScriptPlanner] 개선 제안' : 
+            '[ScriptPlanner] 사용자 피드백';
+        
+        const emailContent = `
+ScriptPlanner 피드백이 도착했습니다.
+
+유형: ${type === 'suggestion' ? '개선 제안' : '일반 피드백'}
+시간: ${new Date().toLocaleString('ko-KR')}
+사용자 이메일: ${userEmail || '제공되지 않음'}
+
+내용:
+${content}
+
+---
+자동 생성된 메일입니다.
+        `;
+        
+        const mailOptions = {
+            from: 'showdam@gmail.com',
+            to: 'showdam@gmail.com',
+            subject: emailSubject,
+            text: emailContent,
+            replyTo: userEmail || undefined
+        };
+        
+        // 이메일 전송
+        await transporter.sendMail(mailOptions);
+        
+        console.log(`피드백 이메일 전송 완료: ${type}`);
+        res.json({ 
+            success: true, 
+            message: '피드백이 성공적으로 전송되었습니다.' 
+        });
+        
+    } catch (error) {
+        console.error('피드백 이메일 전송 오류:', error);
+        res.status(500).json({ 
+            error: '피드백 전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.' 
+        });
+    }
 });
 
 // 헬스체크

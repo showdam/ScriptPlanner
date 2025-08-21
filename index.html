@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9Y7VQJ93FY"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-9Y7VQJ93FY');
+    </script>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ScriptPlanner MVP - 대본 분석 및 촬영계획표 생성</title>
@@ -238,6 +248,39 @@
             </div>
         </div>
 
+        <!-- 샘플 다운로드 영역 -->
+        <div class="sample-download-section" id="sampleSection">
+            <div class="container">
+                <div class="sample-download-card">
+                    <button class="close-btn" onclick="hideSampleSection()">×</button>
+                    <div class="sample-content">
+                        <h3>📋 샘플 엑셀 바로 받기</h3>
+                        <div class="sample-features-list">
+                            <span class="feature-tag">낮/밤 구분</span>
+                            <span class="feature-tag">촬영 장소별 그룹핑</span>
+                            <span class="feature-tag">씬리스트</span>
+                            <span class="feature-tag">등장인물 정리</span>
+                        </div>
+                        <p>완성된 촬영계획표 샘플을 3초만에 다운로드하세요</p>
+                        <button class="sample-download-btn" onclick="downloadSampleExcelSafe()">
+                            <span class="btn-text">샘플 다운로드</span>
+                            <span class="btn-icon">→</span>
+                        </button>
+                    </div>
+                    <div class="sample-preview">
+                        <div class="excel-preview">
+                            <div class="excel-header">📊 Excel</div>
+                            <div class="excel-rows">
+                                <div class="excel-row">씬1 | 거리 | 오후</div>
+                                <div class="excel-row">씬2 | 아파트 | 저녁</div>
+                                <div class="excel-row">씬3 | 준법센터 | 낮</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 메인 입력 영역 -->
         <main class="main-content">
             <div class="input-section">
@@ -298,11 +341,11 @@ S2. EXT. 거리 - NIGHT
                 </div>
                 
                 <!-- AI 분석 (2순위) -->
-                <div class="analysis-option disabled" data-disabled="true">
+                <div class="analysis-option" onclick="selectAnalysisOption('ai')">
                     <div class="option-header">
-                        <input type="radio" name="analysisMode" value="ai" class="option-radio" disabled>
+                        <input type="radio" name="analysisMode" value="ai" class="option-radio">
                         <div>
-                            <h4 class="option-title">AI 분석 (정확함) <span class="preparing-badge">(준비중)</span></h4>
+                            <h4 class="option-title">AI 분석 (정확함)</h4>
                             <p class="option-subtitle">정확도 높음 · 외부 서버 사용 · 2-3분 소요</p>
                         </div>
                     </div>
@@ -670,7 +713,7 @@ S2. EXT. 거리 - NIGHT
             </div>
             <div class="suggestion-modal-footer">
                 <button class="btn-suggestion-cancel" onclick="closeSuggestionModal()">취소</button>
-                <button class="btn-suggestion-submit" onclick="submitSuggestion()">제안하기</button>
+                <button class="btn-suggestion-submit suggestion-submit" onclick="submitSuggestionNew()">제안하기</button>
             </div>
         </div>
     </div>
