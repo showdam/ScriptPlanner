@@ -363,12 +363,16 @@ function analyzeScript(text) {
         });
     }
     
-    // 등장인물을 출현 빈도순으로 정렬
+    // 등장인물을 출현 빈도순으로 정렬하고 AI 분석과 동일한 형식으로 변환
     const sortedCharacters = Array.from(characters).sort((a, b) => {
         const freqA = characterFrequency.get(a) || 0;
         const freqB = characterFrequency.get(b) || 0;
         return freqB - freqA;
-    });
+    }).map(name => ({
+        name: name,
+        appearances: characterFrequency.get(name) || 0,
+        role: characterFrequency.get(name) >= 3 ? "주연" : characterFrequency.get(name) >= 2 ? "조연" : "단역"
+    }));
     
     return {
         scenes: scenes,
@@ -1442,6 +1446,11 @@ app.get('/api/usage', (req, res) => {
         },
         timestamp: new Date().toISOString()
     });
+});
+
+// 루트 경로 핸들러 (index.html 제공)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // 헬스체크

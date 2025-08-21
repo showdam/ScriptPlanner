@@ -120,3 +120,4 @@ exports/
 
 # TypeScript
 *.tsbuildinfo
+.vercel
