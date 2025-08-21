@@ -1453,6 +1453,18 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// CSS 파일 제공
+app.get('/style.css', (req, res) => {
+    res.setHeader('Content-Type', 'text/css');
+    res.sendFile(path.join(__dirname, 'style.css'));
+});
+
+// JavaScript 파일 제공
+app.get('/script.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.sendFile(path.join(__dirname, 'script.js'));
+});
+
 // 헬스체크
 app.get('/api/health', (req, res) => {
     const monthlyUsage = usageTracker.getCurrentMonthUsage();
