@@ -1723,6 +1723,11 @@ document.addEventListener('keydown', function(e) {
 
 // 분석 옵션 선택 함수
 function selectAnalysisOption(type) {
+    // AI 모드가 비활성화된 경우 클릭 방지
+    if (type === 'ai' && event.currentTarget.classList.contains('disabled')) {
+        return false;
+    }
+    
     // 모든 옵션에서 selected 클래스 제거
     document.querySelectorAll('.analysis-option').forEach(option => {
         option.classList.remove('selected');
