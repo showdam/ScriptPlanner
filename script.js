@@ -1051,10 +1051,10 @@ function renderStep2AnalysisReport() {
                     </div>
     `;
     
-    analysisResult.scenes.forEach(scene => {
+    analysisResult.scenes.forEach((scene, index) => {
         const timeIcon = scene.timeOfDay === 'DAY' ? '☀️' : '🌙';
-        const content = scene.content.length > 50 ? 
-            scene.content.substring(0, 50) + '...' : scene.content;
+        const isLongContent = scene.content.length > 50;
+        const shortContent = isLongContent ? scene.content.substring(0, 50) + '...' : scene.content;
         
         reportHTML += `
             <div class="scene-table-row">
@@ -1063,7 +1063,16 @@ function renderStep2AnalysisReport() {
                 <div class="scene-col-time">
                     <span class="time-badge ${scene.timeOfDay.toLowerCase()}">${timeIcon} ${scene.timeOfDay}</span>
                 </div>
-                <div class="scene-col-content">${content}</div>
+                <div class="scene-col-content">
+                    <div class="content-preview" id="content-preview-${index}">
+                        ${shortContent}
+                        ${isLongContent ? `<button class="expand-btn" onclick="toggleSceneContent(${index})" data-expanded="false">더보기</button>` : ''}
+                    </div>
+                    <div class="content-full" id="content-full-${index}" style="display: none;">
+                        ${scene.content}
+                        ${isLongContent ? `<button class="expand-btn" onclick="toggleSceneContent(${index})" data-expanded="true">접기</button>` : ''}
+                    </div>
+                </div>
             </div>
         `;
     });
@@ -1075,6 +1084,22 @@ function renderStep2AnalysisReport() {
     `;
     
     container.innerHTML = reportHTML;
+}
+
+// 씬 내용 토글 함수
+function toggleSceneContent(index) {
+    const preview = document.getElementById(`content-preview-${index}`);
+    const full = document.getElementById(`content-full-${index}`);
+    
+    if (preview.style.display === 'none') {
+        // 접기
+        preview.style.display = 'block';
+        full.style.display = 'none';
+    } else {
+        // 펼치기
+        preview.style.display = 'none';
+        full.style.display = 'block';
+    }
 }
 
 // 필드 표시명 가져오기
