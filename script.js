@@ -203,6 +203,7 @@ function showPreview(data) {
         originalAnalysisResult = JSON.parse(JSON.stringify(data));
     }
     
+    
     const previewSection = document.getElementById('previewSection');
     const statsInfo = document.getElementById('statsInfo');
     const nextStepGuide = document.getElementById('nextStepGuide');
@@ -250,6 +251,7 @@ function showPreview(data) {
     // 미리보기로 스크롤
     previewSection.scrollIntoView({ behavior: 'smooth' });
 }
+
 
 // 수정 가능한 씬 리스트 렌더링
 function renderEditableSceneList(data) {

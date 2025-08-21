@@ -154,7 +154,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static('.'));
 
 // Claude AI를 사용한 대본 분석 함수
-// 순수 AI 파싱 시스템: 샘플 기반 규칙 생성 + 로컬 파싱
+// 순수 AI 파싱 시스템: 샘플 기반 규칙 생성 + 로컬 파싱 + 공통 후처리
 async function analyzeScriptWithAI(text) {
     try {
         console.log('🤖 순수 AI 파싱 시스템 시작...');
@@ -187,6 +187,7 @@ async function analyzeScriptWithAI(text) {
         // 4단계: 표준 형식으로 변환
         const standardResult = convertToStandardFormat(localResult);
         
+        // 4단계: 표준 형식으로 변환
         const endTime = Date.now();
         const totalTime = endTime - startTime;
         
