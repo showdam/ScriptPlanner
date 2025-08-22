@@ -2414,3 +2414,50 @@ function downloadSampleExcelSafe() {
     downloadSampleExcel();
 }
 
+// ==================== 모바일 네비게이션 ====================
+
+// 모바일 메뉴 토글 함수
+function toggleMobileMenu() {
+    const navToggle = document.querySelector('.nav-toggle');
+    const navMenu = document.querySelector('.nav-menu');
+    
+    navToggle.classList.toggle('active');
+    navMenu.classList.toggle('active');
+}
+
+// 메뉴 링크 클릭시 모바일 메뉴 닫기
+document.addEventListener('click', function(e) {
+    if (e.target.matches('.nav-link')) {
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.querySelector('.nav-menu');
+        
+        if (navToggle.classList.contains('active')) {
+            navToggle.classList.remove('active');
+            navMenu.classList.remove('active');
+        }
+    }
+});
+
+// ==================== 가이드 페이지 기능 ====================
+
+// 가이드 페이지 내부 링크 처리
+document.addEventListener('click', function(e) {
+    if (e.target.matches('.guide-toc a')) {
+        e.preventDefault();
+        const targetId = e.target.getAttribute('href').substring(1);
+        const targetElement = document.getElementById(targetId);
+        
+        if (targetElement) {
+            targetElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    }
+});
+
+// 가이드 페이지 표시 함수 (기존 showPage에 통합되어 있음)
+function showGuide() {
+    showPage('guide');
+}
+
