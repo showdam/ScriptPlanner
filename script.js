@@ -1577,10 +1577,20 @@ function showStatus(message, type = 'success') {
 
 // ==================== 설문조사 및 모달 기능 ====================
 
+// 피드백 제출 상태 관리
+let feedbackSubmitting = false;
+
 // 피드백 제출
 function submitFeedback(type) {
+    // 이미 제출 중인 경우 중복 방지
+    if (feedbackSubmitting) {
+        return;
+    }
+    
+    feedbackSubmitting = true;
+    
     const surveyThanks = document.getElementById('surveyThanks');
-    const surveyButtons = document.querySelector('.survey-buttons');
+    const feedbackButtons = document.getElementById('feedbackButtons'); // 피드백 버튼들만 선택
     
     // 피드백 타입에 따른 메시지
     const messages = {
@@ -1589,122 +1599,144 @@ function submitFeedback(type) {
     };
     
     surveyThanks.querySelector('p').textContent = messages[type] || '✨ 소중한 피드백 감사합니다!';
-    surveyButtons.style.display = 'none';
+    feedbackButtons.style.display = 'none'; // 피드백 버튼들만 숨김
     surveyThanks.style.display = 'block';
     
-    // 3초 후 다시 버튼 보이기
-    setTimeout(() => {
-        surveyButtons.style.display = 'flex';
-        surveyThanks.style.display = 'none';
-    }, 3000);
+    // Google Apps Script로 피드백 전송
+    sendFeedbackToSheet(type);
     
-    // 실제 서비스에서는 여기서 피드백 데이터를 서버로 전송
-    console.log(`피드백 제출: ${type}`);
+    // 5초 후 피드백 버튼 다시 보이기 및 상태 리셋
+    setTimeout(() => {
+        feedbackButtons.style.display = 'flex'; // 피드백 버튼들만 다시 표시
+        surveyThanks.style.display = 'none';
+        feedbackSubmitting = false; // 상태 리셋
+    }, 5000);
+}
+
+// 피드백 데이터를 스프레드시트로 전송
+function sendFeedbackToSheet(feedbackType) {
+    // 비동기 처리를 백그라운드에서 실행 (사용자 경험 방해하지 않음)
+    setTimeout(async () => {
+        try {
+            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzZcRtpYcTTC4YvG2JVkRg10A8-BJspwBjdYNzdcPsF8IYfchsbVcHt7zx1Lh766unW/exec';
+            
+            const feedbackData = {
+                type: 'feedback',
+                feedbackType: feedbackType, // 'positive' 또는 'negative'
+                timestamp: new Date().toISOString(),
+                page: window.location.href,
+                userAgent: navigator.userAgent
+            };
+            
+            await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(feedbackData)
+            });
+            
+            console.log(`피드백 전송 완료: ${feedbackType}`);
+            
+        } catch (error) {
+            console.error('피드백 전송 오류:', error);
+            // 오류가 발생해도 사용자 경험을 방해하지 않음
+        }
+    }, 100); // 100ms 후에 실행하여 UI 업데이트와 분리
 }
 
 // 개선 제안 모달 열기
 function openSuggestionModal() {
     const modal = document.getElementById('suggestionModal');
-    modal.style.display = 'flex';
-    
-    // 텍스트 영역에 포커스
-    setTimeout(() => {
-        document.getElementById('suggestionText').focus();
-    }, 100);
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
 }
 
 // 개선 제안 모달 닫기
 function closeSuggestionModal() {
     const modal = document.getElementById('suggestionModal');
-    modal.style.display = 'none';
-    
-    // 입력 필드 초기화
-    document.getElementById('suggestionText').value = '';
-    document.getElementById('suggestionEmail').value = '';
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        // 모달 내용 초기화
+        const textarea = document.getElementById('suggestionText');
+        const email = document.getElementById('suggestionEmail');
+        const name = document.getElementById('suggestionName');
+        if (textarea) textarea.value = '';
+        if (email) email.value = '';
+        if (name) name.value = '';
+    }
 }
 
 // 개선 제안 제출
-function submitSuggestion() {
+async function submitSuggestion() {
     const suggestionText = document.getElementById('suggestionText').value.trim();
     const suggestionEmail = document.getElementById('suggestionEmail').value.trim();
+    const suggestionName = document.getElementById('suggestionName').value.trim();
     
     if (!suggestionText) {
         alert('개선 제안 내용을 입력해주세요.');
         return;
     }
-    
-    // 메일 본문 구성
-    const emailBody = `ScriptPlanner 개선 제안
-    
-제안 내용:
-${suggestionText}
 
-답변받을 이메일: ${suggestionEmail || '없음'}
-
-제출 시간: ${new Date().toLocaleString('ko-KR')}`;
+    const submitButton = document.querySelector('.btn-suggestion-submit');
+    const cancelButton = document.querySelector('.btn-suggestion-cancel');
     
-    // 메일 링크 생성
-    const mailtoLink = `mailto:showdam@gmail.com?subject=ScriptPlanner 개선 제안&body=${encodeURIComponent(emailBody)}`;
-    
-    // 메일 앱 열기
-    window.location.href = mailtoLink;
-    
-    // 성공 메시지 표시
-    setTimeout(() => {
-        alert('메일 앱이 열렸습니다. 소중한 의견 감사합니다! 🙏');
-    }, 500);
-    
-    // 모달 닫기
-    closeSuggestionModal();
-}
-
-// 새로운 피드백 전송 함수
-async function submitSuggestionNew() {
-    const suggestionText = document.getElementById('suggestionText').value.trim();
-    const suggestionEmail = document.getElementById('suggestionEmail').value.trim();
-    
-    if (!suggestionText) {
-        alert('개선 제안 내용을 입력해주세요.');
-        return;
-    }
-    
-    // 로딩 상태 표시
-    const submitBtn = document.querySelector('.suggestion-submit');
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = '전송 중...';
-    submitBtn.disabled = true;
+    // 버튼 비활성화 및 로딩 상태
+    submitButton.disabled = true;
+    cancelButton.disabled = true;
+    submitButton.textContent = '제출 중...';
     
     try {
-        const response = await fetch('/api/send-feedback', {
+        const formData = {
+            name: suggestionName,
+            email: suggestionEmail,
+            suggestion: suggestionText,
+            timestamp: new Date().toISOString(),
+            page: window.location.href
+        };
+        
+        console.log('폼 데이터:', formData);
+        
+        // 구글 스프레드시트로 전송 (CORS 우회)
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzZcRtpYcTTC4YvG2JVkRg10A8-BJspwBjdYNzdcPsF8IYfchsbVcHt7zx1Lh766unW/exec';
+        
+        // CORS 문제를 우회하기 위해 no-cors 모드 사용
+        const response = await fetch(APPS_SCRIPT_URL, {
             method: 'POST',
+            mode: 'no-cors',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                type: 'suggestion',
-                content: suggestionText,
-                userEmail: suggestionEmail || null
-            })
+            body: JSON.stringify(formData)
         });
         
-        const result = await response.json();
+        // no-cors 모드에서는 응답을 읽을 수 없으므로 성공으로 가정
+        alert('개선 제안이 성공적으로 전송되었습니다. 소중한 의견 감사합니다!');
         
-        if (response.ok) {
-            alert('개선 제안이 성공적으로 전송되었습니다. 소중한 의견 감사합니다! 🙏');
-            closeSuggestionModal();
-        } else {
-            throw new Error(result.error || '전송 중 오류가 발생했습니다.');
+        // 폼 초기화
+        document.getElementById('suggestionText').value = '';
+        document.getElementById('suggestionEmail').value = '';
+        if (document.getElementById('suggestionName')) {
+            document.getElementById('suggestionName').value = '';
         }
         
+        closeSuggestionModal();
+            
     } catch (error) {
-        console.error('피드백 전송 오류:', error);
-        alert('전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        console.error('API 오류:', error);
+        alert(`전송 중 오류가 발생했습니다: ${error.message}`);
     } finally {
-        // 버튼 상태 복구
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
+        // 버튼 상태 복원
+        submitButton.disabled = false;
+        cancelButton.disabled = false;
+        submitButton.textContent = '제안하기';
     }
 }
+
 
 // 모달 외부 클릭시 닫기
 document.addEventListener('click', function(e) {

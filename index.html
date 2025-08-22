@@ -1022,14 +1022,16 @@ S2. EXT. 거리 - NIGHT
             <h3 class="survey-title">💬 이 도구가 도움이 되셨나요?</h3>
             <p class="survey-description">여러분의 소중한 피드백이 서비스 개선에 큰 도움이 됩니다</p>
             <div class="survey-buttons">
-                <button class="survey-btn positive" onclick="submitFeedback('positive')">
-                    <span class="survey-emoji">👍</span>
-                    <span class="survey-text">도움됐어요!</span>
-                </button>
-                <button class="survey-btn negative" onclick="submitFeedback('negative')">
-                    <span class="survey-emoji">👎</span>
-                    <span class="survey-text">아쉬워요</span>
-                </button>
+                <div class="feedback-buttons" id="feedbackButtons">
+                    <button class="survey-btn positive" onclick="submitFeedback('positive')">
+                        <span class="survey-emoji">👍</span>
+                        <span class="survey-text">도움됐어요!</span>
+                    </button>
+                    <button class="survey-btn negative" onclick="submitFeedback('negative')">
+                        <span class="survey-emoji">👎</span>
+                        <span class="survey-text">아쉬워요</span>
+                    </button>
+                </div>
                 <button class="survey-btn suggestion" onclick="openSuggestionModal()">
                     <span class="survey-emoji">💡</span>
                     <span class="survey-text">개선 제안</span>
@@ -1049,18 +1051,19 @@ S2. EXT. 거리 - NIGHT
                 <button class="suggestion-close" onclick="closeSuggestionModal()">×</button>
             </div>
             <div class="suggestion-modal-body">
+                <div class="suggestion-contact">
+                    <input type="text" id="suggestionName" placeholder="이름 (선택사항)">
+                    <input type="email" id="suggestionEmail" placeholder="답변받을 이메일 (선택사항)">
+                </div>
                 <textarea 
                     id="suggestionText" 
                     placeholder="어떤 부분이 개선되면 좋을까요?&#10;&#10;예시:&#10;- 더 많은 파일 형식 지원&#10;- 특정 기능 추가 요청&#10;- 사용성 개선 제안 등"
                     rows="6"
                 ></textarea>
-                <div class="suggestion-contact">
-                    <input type="email" id="suggestionEmail" placeholder="답변받을 이메일 (선택사항)">
-                </div>
             </div>
             <div class="suggestion-modal-footer">
                 <button class="btn-suggestion-cancel" onclick="closeSuggestionModal()">취소</button>
-                <button class="btn-suggestion-submit suggestion-submit" onclick="submitSuggestionNew()">제안하기</button>
+                <button class="btn-suggestion-submit" onclick="submitSuggestion()">제안하기</button>
             </div>
         </div>
     </div>
