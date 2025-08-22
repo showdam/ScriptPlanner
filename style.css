@@ -320,19 +320,25 @@ body {
 }
 
 .cta-button {
-    background: #1a1a1a;
+    background: #3b82f6;
     color: white;
     border: none;
     padding: 20px 48px;
-    border-radius: 2px;
+    border-radius: 8px;
     font-size: 1rem;
-    font-weight: 400;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
 }
 
 .cta-button:hover {
-    background: #333333;
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
 }
 
 /* 기대치 섹션 */
@@ -726,49 +732,62 @@ body {
 }
 
 .btn-primary, .btn-secondary, .btn-sample {
-    padding: 16px 32px;
+    background: #3b82f6;
+    color: white;
     border: none;
-    border-radius: 2px;
-    font-size: 0.9rem;
-    font-weight: 400;
+    border-radius: 8px;
+    padding: 14px 24px;
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     min-width: 180px;
+    justify-content: center;
 }
 
 .btn-primary {
-    background: #007acc;
+    background: #3b82f6;
     color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: #005999;
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
 }
 
 .btn-secondary {
-    background: #1a1a1a;
+    background: #6b7280;
     color: white;
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background: #333333;
+    background: #4b5563;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(107, 114, 128, 0.3);
 }
 
 .btn-sample {
-    background: white;
-    color: #666666;
-    border: 1px solid #e6e6e6;
+    background: #10b981;
+    color: white;
+    border: none;
 }
 
 .btn-sample:hover {
-    background: #fafafa;
-    border-color: #cccccc;
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
 }
 
 .btn-primary:disabled, .btn-secondary:disabled {
-    background-color: #cccccc;
-    color: #999999;
+    background-color: #d1d5db;
+    color: #9ca3af;
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 /* 미리보기 섹션 */
@@ -980,97 +999,117 @@ body {
 .btn-step-next, .btn-step-prev, .btn-generate-final {
     padding: 8px 16px;
     border: none;
-    border-radius: 2px;
+    border-radius: 8px;
     font-size: 0.85rem;
-    font-weight: 400;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: center;
 }
 
 .btn-edit {
-    background: #1a1a1a;
+    background: #3b82f6;
     color: white;
 }
 
 .btn-edit:hover {
-    background: #333333;
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-save {
-    background: #27ae60;
+    background: #10b981;
     color: white;
 }
 
 .btn-save:hover {
-    background: #219a52;
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .btn-cancel {
-    background: #e74c3c;
+    background: #ef4444;
     color: white;
 }
 
 .btn-cancel:hover {
-    background: #c0392b;
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .btn-add {
-    background: #3498db;
+    background: #3b82f6;
     color: white;
     min-width: 60px;
 }
 
 .btn-add:hover {
-    background: #2980b9;
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-quick-review {
-    background: #8e44ad;
+    background: #8b5cf6;
     color: white;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .btn-quick-review:hover {
-    background: #7d3c98;
+    background: #7c3aed;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .btn-step-next {
-    background: #007acc;
+    background: #3b82f6;
     color: white;
     min-width: 120px;
 }
 
 .btn-step-next:hover:not(:disabled) {
-    background: #005999;
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-step-prev {
-    background: #95a5a6;
+    background: #6b7280;
     color: white;
     min-width: 80px;
 }
 
 .btn-step-prev:hover {
-    background: #7f8c8d;
+    background: #4b5563;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
 .btn-generate-final {
-    background: linear-gradient(135deg, #007acc 0%, #4a9eff 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
     color: white;
-    font-weight: 500;
+    font-weight: 600;
     min-width: 180px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
 }
 
 .btn-generate-final:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 .btn-step-next:disabled {
-    background: #bdc3c7;
-    color: #7f8c8d;
+    background: #d1d5db;
+    color: #9ca3af;
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 /* 분석 완료 후 다음 단계 안내 */
@@ -1198,14 +1237,14 @@ body {
 }
 
 .btn-primary-large {
-    background: linear-gradient(135deg, #007acc 0%, #4a9eff 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
     color: white;
     transform: scale(1.02);
 }
 
 .btn-primary-large:hover {
     transform: scale(1.04) translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
 }
 
 .btn-secondary-large {
@@ -1216,8 +1255,8 @@ body {
 
 .btn-secondary-large:hover {
     transform: translateY(-2px);
-    border-color: #007acc;
-    box-shadow: 0 6px 12px rgba(0, 122, 204, 0.15);
+    border-color: #3b82f6;
+    box-shadow: 0 6px 12px rgba(59, 130, 246, 0.15);
 }
 
 .btn-content {
