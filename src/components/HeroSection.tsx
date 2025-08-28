@@ -23,7 +23,7 @@ export default function HeroSection({
       </h1>
       
       {/* 동일한 위계의 설명 문구들 */}
-      <div className="mb-12 max-w-3xl mx-auto">
+      <div className="mb-12 max-w-3xl mx-auto leading-relaxed">
         {descriptions.map((description, index) => (
           <p key={index} className="text-lg text-gray-600">
             {description}
