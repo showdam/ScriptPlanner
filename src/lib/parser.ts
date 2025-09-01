@@ -32,7 +32,8 @@ export function parseScript(text: string): ParsedScriptElement[] {
     }
     
     if (sceneMatch) {
-      const sceneTitle = sceneMatch[1].trim();
+      // S#1 형식인 경우 두 번째 그룹이 제목
+      const sceneTitle = (sceneMatch[2] || sceneMatch[1] || '').trim();
       const sceneElement: SceneElement = {
         type: 'scene',
         number: sceneNumber,
